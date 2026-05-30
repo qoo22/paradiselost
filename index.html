@@ -25,37 +25,40 @@
     display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;
     user-select:none;touch-action:none;-webkit-user-select:none;}
   .btn:active{background:#363636;border-color:#888;}
-  /* ===== トラックパッド（PCのトラックパッド風）。指は ゲーム画面に かぶらない。
-     なぞって移動 / タップ＝けってい。もどる・♪ は 角に 一体化（省スペース）===== */
-  #pad{ display:none; width:100%; max-width:520px; box-sizing:border-box; padding:0 10px; }
-  #tp{ position:relative; width:100%; height:148px; background:#0e0e0e;
-    border:2px solid #3a3a3a; border-radius:16px; box-sizing:border-box; overflow:hidden; touch-action:none; }
+  /* ===== トラックパッド（PC風）。比率は 戦闘ボックス(220:135)と 同じ。
+     なぞって移動／タップ＝けってい。内部に 薄い 擬似十字キー（選択用）。もどる を 角に 一体化。===== */
+  #pad{ display:none; width:100%; box-sizing:border-box; padding:0 12px; justify-content:center; }
+  /* 高さは calc で 220:135 比率（aspect-ratio非対応でも 確実に 高さが 出る） */
+  #tp{ position:relative; width:min(86vw,400px); height:calc(min(86vw, 400px) * 135 / 220);
+    background:#0e0e0e; border:2px solid #3a3a3a; border-radius:16px; box-sizing:border-box;
+    overflow:hidden; touch-action:none; }
   #tp:active{ border-color:#6a6a6a; }
-  #tpsurf{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
-    color:#4d4d4d; font-size:13px; text-align:center; line-height:1.6; touch-action:none; }
-  .tpc{ position:absolute; top:8px; height:34px; min-width:56px; padding:0 8px; font-size:13px; z-index:3;
-    background:#1a1a1a; }
-  #tpback{ left:8px; }
-  #tpmute{ right:8px; min-width:44px; }
+  #tpsurf{ position:absolute; inset:0; touch-action:none; background:rgba(255,255,255,0.02); }
+  /* 薄い 擬似十字キー（メインは トラックパッドなので 控えめ） */
+  .tpk{ position:absolute; color:#fff; opacity:0.16; font-size:19px; pointer-events:none;
+    left:50%; top:50%; transform:translate(-50%,-50%); }
+  .tpk-u{ top:13%; } .tpk-d{ top:87%; } .tpk-l{ left:12%; } .tpk-r{ left:88%; }
+  .tpk-c{ font-size:12px; letter-spacing:1px; }
+  .tpc{ position:absolute; top:6px; left:6px; height:30px; min-width:54px; padding:0 8px;
+    font-size:12px; z-index:3; background:#1a1a1a; }
   #fsbtn{ display:none; position:fixed; top:8px; right:8px; width:44px; height:44px;
     font-size:20px; z-index:60; opacity:0.82; }
-  /* タッチ端末（スマホ・タブレット）レイアウト */
+  /* タッチ端末（スマホ・タブレット）レイアウト: ゲーム画面を 中央に */
   @media (pointer:coarse){
-    #wrap{ justify-content:space-between; padding:0 0 8px; gap:6px; }
-    #pad{ display:block; }
+    #wrap{ justify-content:center; padding:0 0 10px; gap:10px; }
+    #pad{ display:flex; }
     #hint{ display:none; }
-    canvas{ max-width:100vw; max-height:78vh; border:none; }   /* たて: ギリギリまで 拡大・中央 */
+    canvas{ max-width:100vw; max-height:68vh; border:none; }
     #fsbtn{ display:flex; }
   }
   /* 横向きスマホ: 中央に 大きく キャンバス、トラックパッドは 左 */
   @media (pointer:coarse) and (orientation:landscape){
-    #wrap{ flex-direction:row; justify-content:center; align-items:center; padding:0; }
+    #wrap{ flex-direction:row; justify-content:center; align-items:center; padding:0; gap:0; }
     canvas{ max-width:100vw; max-height:100vh; border:none; }
-    #pad{ position:fixed; left:6px; top:50%; transform:translateY(-50%);
-      width:152px; max-width:152px; padding:0; }
-    #tp{ height:188px; }
-    #tpsurf{ font-size:11px; }
-    .tpc{ min-width:50px; font-size:12px; }
+    #pad{ position:fixed; left:6px; top:50%; transform:translateY(-50%); width:auto; padding:0; }
+    #tp{ width:170px; height:calc(170px * 135 / 220); }   /* 220:135 比率(≈104px) */
+    .tpk{ font-size:14px; } .tpk-c{ font-size:10px; }
+    .tpc{ min-width:46px; font-size:11px; height:26px; }
   }
 </style>
 </head>
@@ -69,8 +72,13 @@
   <div id="pad">
     <div id="tp">
       <div class="btn tpc" id="tpback" data-k="x">もどる</div>
-      <div class="btn tpc" id="tpmute" data-k="m">♪</div>
-      <div id="tpsurf">なぞって うごく<br>タップ＝けってい</div>
+      <div id="tpsurf">
+        <span class="tpk tpk-u">▲</span>
+        <span class="tpk tpk-d">▼</span>
+        <span class="tpk tpk-l">◀</span>
+        <span class="tpk tpk-r">▶</span>
+        <span class="tpk tpk-c">けってい</span>
+      </div>
     </div>
   </div>
   <div id="fsbtn" class="btn" title="全画面">⛶</div>
@@ -130,29 +138,36 @@ function soulMoveRel(dx,dy){ const box=bphase.box,pad=6;
 /* トラックパッド: なぞって移動（弾幕は相対移動／メニューは方向ステップ）・タップ＝けってい */
 (function(){
   const surf=document.getElementById('tpsurf'); if(!surf) return;
-  const tp={active:false,lx:0,ly:0,ax:0,ay:0,moved:false,t0:0};
+  const tp={active:false,sx:0,sy:0,lx:0,ly:0,ax:0,ay:0,moved:false,t0:0};
   function p(e){ const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0])||e; return {x:t.clientX,y:t.clientY}; }
   function start(e){ e.preventDefault(); ensureAudio(); const q=p(e);
-    tp.active=true; tp.lx=q.x; tp.ly=q.y; tp.ax=0; tp.ay=0; tp.moved=false; tp.t0=Date.now(); }
+    tp.active=true; tp.sx=q.x; tp.sy=q.y; tp.lx=q.x; tp.ly=q.y; tp.ax=0; tp.ay=0; tp.moved=false; tp.t0=Date.now(); }
   function move(e){ if(!tp.active)return; e.preventDefault(); const q=p(e);
     const dx=q.x-tp.lx, dy=q.y-tp.ly; tp.lx=q.x; tp.ly=q.y;
     if(Math.abs(dx)+Math.abs(dy)>2) tp.moved=true;
-    if(isDodge()){ soulMoveRel(dx*1.8, dy*1.8); }          // 弾幕: なめらかな 相対移動
-    else { tp.ax+=dx; tp.ay+=dy; const S=24;               // メニュー: 方向に ステップ
+    if(isDodge()){ soulMoveRel(dx*2.0, dy*2.0); }          // 弾幕: なめらかな 相対移動
+    else { tp.ax+=dx; tp.ay+=dy; const S=24;               // メニュー: なぞった方向に ステップ
       if(tp.ax>=S){ pressed.right=true; tp.ax=0; tp.ay=0; }
       else if(tp.ax<=-S){ pressed.left=true; tp.ax=0; tp.ay=0; }
       else if(tp.ay>=S){ pressed.down=true; tp.ax=0; tp.ay=0; }
       else if(tp.ay<=-S){ pressed.up=true; tp.ax=0; tp.ay=0; } }
   }
   function end(e){ if(e&&e.preventDefault)e.preventDefault(); if(!tp.active)return; tp.active=false;
-    if(!tp.moved && Date.now()-tp.t0<320) pressed.confirm=true; }   // タップ（動かさず 離す）＝けってい
+    if(tp.moved || Date.now()-tp.t0>=340) return;
+    // タップ＝擬似十字キー: 触れた場所で 上下左右／中央(けってい)を 判定（選択操作）
+    const r=surf.getBoundingClientRect();
+    const nx=(tp.sx-(r.left+r.width/2))/(r.width/2), ny=(tp.sy-(r.top+r.height/2))/(r.height/2);
+    if(Math.hypot(nx,ny)<0.42){ pressed.confirm=true; }            // 中央 → けってい
+    else if(Math.abs(nx)>Math.abs(ny)){ pressed[nx>0?'right':'left']=true; }
+    else { pressed[ny>0?'down':'up']=true; } }
+  // 開始は トラックパッド上、移動・終了は document で 拾う（指が 枠外へ ずれても 確実に 動く）
   surf.addEventListener('touchstart',start,{passive:false});
-  surf.addEventListener('touchmove',move,{passive:false});
-  surf.addEventListener('touchend',end,{passive:false});
-  surf.addEventListener('touchcancel',end,{passive:false});
+  document.addEventListener('touchmove',move,{passive:false});
+  document.addEventListener('touchend',end,{passive:false});
+  document.addEventListener('touchcancel',end,{passive:false});
   surf.addEventListener('mousedown',start);
-  window.addEventListener('mousemove',e=>{ if(e.buttons&&tp.active) move(e); });
-  window.addEventListener('mouseup',end);
+  document.addEventListener('mousemove',e=>{ if(e.buttons&&tp.active) move(e); });
+  document.addEventListener('mouseup',end);
 })();
 /* タブを 閉じ／戻し したり、画面を 再表示したとき 音が 止まったままに ならない ように 再開。
    バックグラウンドで AudioContext が suspend されると 元の音源が 無音化するので、
