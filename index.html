@@ -248,7 +248,8 @@ const BGM={
   argor:'music/argor_battle.mp3',        // 本戦(ASGORE的): MERCY破壊後の 悲壮な決戦
   argor_sad:'music/sad.mp3',
   light:'music/hopeful.mp3', hollow:'music/sad.mp3', gameover:'music/gameover.mp3',
-  end_true:'music/hopeful.mp3', end_bitter:'music/sad.mp3', end_dark:'music/dark.mp3',
+  // エンディング専用曲（タイトル曲を 踏襲した オルゴール）
+  end_true:'music/end_true.mp3', end_bitter:'music/end_bitter.mp3', end_dark:'music/end_dark.mp3',
 };
 /* BGM: できれば Web Audio の AudioBufferSource を loop=true で 鳴らす（サンプル精度＝継ぎ目なし）。
    http配信では これが 使える。file:// 等で fetch が だめな時は <audio>要素に フォールバック。 */
@@ -1000,10 +1001,11 @@ function runSeq(){ const st=STORY[seqPos]; if(!st)return; if(st.label)curPlace=s
 let cut={img:null, pages:[], idx:0, after:null, choice:null, dark:0.55, sprite:null};
 function cutscene(img,pages,after,opt){
   // 1画面=最大2行に なるよう 各ページを 分割（カット枠 幅 W-80, 17px）
-  const flat=[]; for(const p of pages){ for(const q of paginate2(p, (W-80)-36, '20px "Courier New",monospace')) flat.push(q); }
+  const flat=[]; for(const p of pages){ for(const q of paginate2(p, (W-80)-36, '23px "Courier New",monospace')) flat.push(q); }
   cut.img=img; cut.pages=flat; cut.idx=0; cut.after=after||advance;
   cut.choice=(opt&&opt.choice)||null; cut.dark=(opt&&opt.dark!=null)?opt.dark:0.55;
   cut.sprite=(opt&&opt.sprite)||null;   // 中央に 立つ キャラ画像（任意）
+  cut.fx=(opt&&opt.fx)||null;           // エンディング演出（'light'=昇る光 / 'ash'=降る灰）
   cutText=''; cutShown=0; loadPage();
   state=ST.CUT; clearPressed();
 }
@@ -1271,7 +1273,7 @@ function endTruePacifist(){
     '「つよさ」とは、たおした 数では なかった。\nそれは、だれかを わかろうと する\n こころの ことだった。',
     '   ──── やさしい失楽園 ────\n      ~ ① 真・やさしい おわり ~',
     'あそんで くれて、ありがとう。\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.3});
+  ], ()=>backToTitle(), {dark:0.3, fx:'light'});
 }
 function endGenocide(){
   playTheme('end_dark');
@@ -1288,7 +1290,7 @@ function endGenocide(){
     '地下は、からっぽ に なった。\nもう、だれの こえも、聞こえ ない。',
     '   ──── やさしい失楽園 ────\n      ~ ② むなしい おわり ~',
     'たおす ことは、いつだって かんたんだった。\nもう いちど、べつの えらびを みて みたく ないか?\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.5});
+  ], ()=>backToTitle(), {dark:0.5, fx:'ash'});
 }
 function endSmokeConsumed(k,s){
   playTheme('end_dark');
@@ -1304,7 +1306,7 @@ function endSmokeConsumed(k,s){
     '── まだ、ひきかえせる。\n  のこした やさしさが、きえて しまう まえに。',
     '   ──── やさしい失楽園 ────\n      ~ ③ のまれかけの おわり ~',
     'Z で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.5});
+  ], ()=>backToTitle(), {dark:0.5, fx:'ash'});
 }
 function endKingFallen(k,s){
   playTheme('end_bitter');
@@ -1321,7 +1323,7 @@ function endKingFallen(k,s){
     'あなたは かいだんを のぼり ながら、\n玉座の 灰を、いちどだけ ふりかえった。',
     '   ──── やさしい失楽園 ────\n      ~ ④ 王を 討った おわり ~',
     '王を 救う みちも、あった。\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.45});
+  ], ()=>backToTitle(), {dark:0.45, fx:'ash'});
 }
 function endKingSaved(k,s){
   playTheme('end_true');
@@ -1338,7 +1340,7 @@ function endKingSaved(k,s){
     'あなたは かいだんを のぼる。\nすくえた ぬくもりと、すくえなかった しずけさを、\n どちらも 胸に だいて。',
     '   ──── やさしい失楽園 ────\n      ~ ⑤ 王を 救った おわり ~',
     'もう ひとりも 失わない みちも、ある。\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.35});
+  ], ()=>backToTitle(), {dark:0.35, fx:'light'});
 }
 function endNeutral(k,s,kakutoSpared){
   playTheme('end_bitter');
@@ -1358,7 +1360,7 @@ function endNeutral(k,s,kakutoSpared){
     'つぎは ── どう、えらぶ だろうか。',
     '   ──── やさしい失楽園 ────\n      ~ ⑥ まじりあう おわり ~',
     'すべてを たすける みちも、ここには ある。\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.4});
+  ], ()=>backToTitle(), {dark:0.4, fx:(kakutoSpared?'light':'ash')});
 }
 function backToTitle(){ state=ST.TITLE; playTheme('title'); clearPressed(); }
 
@@ -1416,6 +1418,17 @@ function bossIntroWanda(){ playTheme('char_wanda'); cutscene('char_wanda',[
   'みはり小屋の おくから、大きな けものが\nかけてきた。しっぽを ちぎれそうな ほど ふって。',
   'ワンダだ。首には、ふるい かぎを かけている。',
   '「ワン！」── やっと だれか きてくれた、と\nいわんばかりに、あなたに とびついた。'],()=>advance(),{dark:0.45}); }
+/* 最終決戦の 直前: 「もう ひきかえせない」── プレイヤーに 問いを 投げかける */
+function finalGate(){
+  playTheme('argor_sad');
+  cutscene('room_gate',[
+    'おくの 玉座の まえに、大きな かげが、しずかに 立って いる。',
+    'この さきへ 進めば ── もう、ひきかえす ことは できない。',
+  ], ()=>{}, { dark:0.55, choice:{ q:'それでも、行く?', sel:0, opts:[
+    { label:'……行く', after:()=>argorApproach() },                                 // 続行（この先の advance で 戦闘へ）
+    { label:'まだ、やめて おく', after:()=>{ se('cancel'); seqPos=Math.max(0,seqPos-1); runSeq(); } }, // 直前の部屋へ もどる
+  ]}});
+}
 /* 最終ステージ直前: 玉座の間への 静かな モノローグ と 王の別れ */
 function argorApproach(){
   playTheme('argor_intro');   // 導入曲(Bergentrückung的): 旅の終わり・王の覚悟・別れ
@@ -1705,7 +1718,7 @@ function buildStory(){
     ],
     saveAt:{x:120,y:200},
     exitText:'おくの 玉座に、大きな かげが 立っている。\nここから さきは ── もう、もどれない。\n（ともしびで ほぞん して おこう）'}, 'argor_sad');
-  FN('玉座の 間', argorApproach);
+  FN('玉座の 間', finalGate);   // 「もう ひきかえせない」確認 →（行く）argorApproach
   BT('', 12); // アルゴール（最終ボス）
   FN('', smokeFinale);
   FN('', sceneEnding);
@@ -1764,29 +1777,29 @@ function drawWalk(){
   // 出口の矢印
   ctx.fillStyle=(room.near&&room.near.type==='exit')?'#ff3':'#555';
   txt('▶',W-40,H/2-20,28,(room.near&&room.near.type==='exit')?'#ff3':'#555','center');
-  txt('みち',W-40,H/2+12,12,'#555','center');
+  txt('みち',W-40,H/2+12,16,'#888','center');
   // NPC
   for(const n of c.npcs||[]){
     ctx.fillStyle='#888'; ctx.fillRect(n.x-12,n.y-16,24,30);
     ctx.fillStyle='#bbb'; ctx.fillRect(n.x-10,n.y-14,20,10);
-    txt(n.label,n.x,n.y+18,11,(room.near&&room.near.obj===n)?'#ff3':'#888','center');
+    txt(n.label,n.x,n.y+20,15,(room.near&&room.near.obj===n)?'#ff3':'#aaa','center');
   }
   // セーブポイント（ともしび）
   if(c.saveAt){ const f=c.saveAt; const fl=Math.sin(Date.now()*0.01)*3;
     ctx.fillStyle=(room.near&&room.near.type==='save')?'#ff6':'#fc3';
     ctx.beginPath(); ctx.ellipse(f.x,f.y+fl,7,12,0,0,7); ctx.fill();
     ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(f.x,f.y+4+fl,3,6,0,0,7); ctx.fill();
-    txt('ともしび',f.x,f.y+22,11,(room.near&&room.near.type==='save')?'#ff6':'#a80','center'); }
+    txt('ともしび',f.x,f.y+24,15,(room.near&&room.near.type==='save')?'#ff6':'#c90','center'); }
   // プレイヤー（ハート）
   const bob=Math.sin(room.anim)*2;
   drawHeart(room.px,room.py+bob,'#f00',7);
   // 操作ヒント
   if(room.near){ const m=room.near.type==='exit'?'すすむ':room.near.type==='save'?'ともしびに ふれる':'しらべる';
-    txt('Z: '+m,room.px,room.py-26,12,'#ff3','center'); }
+    txt((IS_TOUCH?'タップ: ':'Z: ')+m,room.px,room.py-28,16,'#ff3','center'); }
   // バナー
-  if(roomBannerT>0){ ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,60,20,'#fff','center'); ctx.globalAlpha=1; }
+  if(roomBannerT>0){ ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,58,26,'#fff','center'); ctx.globalAlpha=1; }
   // 下部ヒント
-  txt(IS_TOUCH?'十字キーで あるく ・ タップで しらべる/すすむ':'↑↓←→ あるく   Z しらべる/すすむ',W/2,H-24,12,'#555','center');
+  txt(IS_TOUCH?'十字キーで あるく ・ タップで しらべる/すすむ':'↑↓←→ あるく   Z しらべる/すすむ',W/2,H-24,15,'#777','center');
 }
 
 /* =======================  戦闘  ======================= */
@@ -1824,14 +1837,20 @@ function wrapToLines(text, maxw, font){
   for(const seg of String(text).split('\n')){
     let line='';
     for(const ch of seg){ const t=line+ch;
-      if(line && ctx.measureText(t).width>room){ lines.push(line); line=ch; } else line=t; }
+      if(line && ctx.measureText(t).width>room){
+        if('」』）)、。，．・！？…ー〜】'.indexOf(ch)>=0){ line=t; }   // 行頭禁則: 閉じ記号は ぶら下げ（「」だけ改行を防ぐ）
+        else { lines.push(line); line=ch; }
+      } else line=t; }
     lines.push(line);
   }
   ctx.restore();
   return lines;
 }
 function paginate2(text, maxw, font){
-  const lines=wrapToLines(text, maxw, font), pages=[];
+  // 文を 流し込み で 詰める: 手書きの 改行・インデント(全角/半角スペース)を 1個の空白に まとめ、
+  // 文字サイズに あわせて 自動で きれいに 折り返す（「い」だけ 改行 などの 不自然な 行を 防ぐ）。
+  const flowed=String(text).replace(/\s*\n\s*/g,' ').replace(/[ 　]{2,}/g,' ').trim();
+  const lines=wrapToLines(flowed, maxw, font), pages=[];
   for(let i=0;i<lines.length;i+=2) pages.push(lines.slice(i,i+2).join('\n'));
   return pages.length?pages:[''];
 }
@@ -1839,7 +1858,7 @@ function say(lines,after,fromWalk){
   dialogReturnWalk=!!fromWalk;
   const arr=Array.isArray(lines)?lines:[lines];
   const maxw = fromWalk ? (W-80-32) : (220-24);
-  const font = fromWalk ? '19px "Courier New",monospace' : '18px "Courier New",monospace';
+  const font = fromWalk ? '22px "Courier New",monospace' : '20px "Courier New",monospace';
   const pages=[];
   for(const ln of arr){ for(const pg of paginate2(ln, maxw, font)) pages.push(pg); }   // 各行を 2行ページに
   dialogLines=pages;
@@ -1854,9 +1873,14 @@ function nextDialog(after){
 function splitLines(t){return t.split('\n');}
 function toMenu(){ if(enemy&&enemy.hp<=0)return; state=ST.MENU; menuIndex=0; clearPressed(); }
 
+/* 弾幕の ロジックは つねに 標準サイズ(220×135)。敵の攻撃ターンだけ、
+   描画を 一律に 拡大する（箱も 弾も ハートも 同じ比率で 大きく＝見やすく）。
+   ※当たり判定・弾の動きは 標準座標のままなので、難易度・パターンは 変わらない。 */
+const DODGE_SCALE=1.4;
+function setBattleBox(big){ bphase.box={x:W/2-110,y:255,w:220,h:135}; }   // 互換のため 残す（つねに標準）
 function startBattle(i){
   eIndex=i; enemy=enemies[i];
-  bphase.box={x:W/2-110,y:255,w:220,h:135};
+  setBattleBox(false);
   // 戦闘に入った 状況（〇〇が 〇〇で あらわれた）を、行動選択中も ボックスに のこす
   battleMsg=battleStatus(enemy);
   if(enemy.final){ stopMusic(); say(enemy.desc, ()=>argorBreakMercy()); } // 王の登場〜破壊まで 無音（効果音だけ）。本戦曲は 破壊“後”に
@@ -2184,9 +2208,11 @@ function argorDefeated(){ enemy.downed=true; shake=12; playTheme('argor_sad');
   say(['王は、さいごの 槍を かまえた ──','だが その 槍は、きみの ハートの\n すぐ まえで、ぴたりと とまった。','王は、がっくりと 膝を ついた。','くだけて いた MERCY ボタンが、\nヒビの 入った まま、もどって きた。','……いま、ほんとうの えらびが、\n きみの 手に ある。'],()=>openFinalChoice()); }
 function openFinalChoice(){ subType='final'; subIndex=1; subOptions=['とどめを さす','てを さしのべる']; state=ST.SUB; clearPressed(); }
 function enemyTurn(){ if(enemy.hp<=0)return; state=ST.ENEMY; bphase.active=true; bphase.t=0; bphase.bullets=[];
+  setBattleBox(true);   // 攻撃ターンだけ ボックスを 拡大（避けやすく）
   bphase.frames=enemy.turnFrames; soul.x=bphase.box.x+bphase.box.w/2; soul.y=bphase.box.y+bphase.box.h/2;
   soul.px=soul.x; soul.py=soul.y; soul.invuln=0; padVX=0; padVY=0; clearPressed(); }
 function endEnemyTurn(){ bphase.active=false;
+  setBattleBox(false);  // 行動選択に もどす ので 標準サイズへ
   // 毎ターン、いまの 状況（状態・表情）を 説明 → そのまま ボックスに のこして 行動選択へ
   battleMsg=battleStatus(enemy); say([battleMsg],()=>toMenu()); }
 function winBattle(kind){ state=ST.RESULT; resultTimer=70; flash=12; resultNext=()=>advance(); }
@@ -2377,6 +2403,32 @@ function drawTitle(){
   txt('↑↓ えらぶ   Z けってい',W/2,420,13,'#666','center');
   txt('FIGHT  ACT  ITEM  MERCY     M: 音楽 ON/OFF',W/2,448,12,'#444','center');
 }
+/* エンディングの 豪華演出: 'light'＝下から 昇る 金色の 光、'ash'＝上から 降る 灰。
+   gframe を 使った 手続き的アニメ（状態を 持たない）。中央には ほのかな グロー。 */
+function drawEndingFX(kind){
+  const t=gframe, n=48;
+  ctx.save();
+  if(kind==='light'){
+    // 中央から ひろがる 暖かな グロー
+    const g=ctx.createRadialGradient(W/2,H*0.42,20, W/2,H*0.42, W*0.62);
+    g.addColorStop(0,'rgba(255,240,190,0.18)'); g.addColorStop(1,'rgba(255,240,190,0)');
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  }
+  ctx.globalCompositeOperation='lighter';
+  for(let i=0;i<n;i++){
+    const seed=i*97.13;
+    const baseX=(Math.sin(seed)*0.5+0.5)*W;
+    const drift=Math.sin(t*0.012+seed)*18;
+    const sp=0.45+(i%5)*0.14;
+    let y, r, col;
+    if(kind==='light'){ y=H+20-((t*sp+i*57)%(H+60)); r=1.4+(i%3); col='rgba(255,238,170,'; }
+    else              { y=((t*sp*0.7+i*57)%(H+60))-30;  r=1.2+(i%3); col='rgba(176,176,182,'; }
+    const a=0.12+0.26*(0.5+0.5*Math.sin(t*0.03+seed));
+    ctx.fillStyle=col+a.toFixed(3)+')';
+    ctx.beginPath(); ctx.arc(baseX+drift, y, r, 0, 7); ctx.fill();
+  }
+  ctx.restore();
+}
 function drawCut(){
   // 背景の拡大画像: スプライトと 同じ画像なら 描かない（拡大画像と スプライトの 二重表示を 防ぐ）
   const bgKey = (cut.img && cut.img!==cut.sprite) ? cut.img : null;
@@ -2389,17 +2441,19 @@ function drawCut(){
       drawImgFit(IMG[cut.sprite], W/2, 150, 280, 240);
     }
   }
+  if(cut.fx) drawEndingFX(cut.fx);   // エンディングの 豪華演出（光／灰）
   // 文字ボックス
   const bx=40,by=H-150,bw=W-80,bh=110;
   ctx.fillStyle='rgba(0,0,0,0.72)'; ctx.fillRect(bx,by,bw,bh);
   ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle='#fff'; ctx.font='20px "Courier New",monospace'; ctx.textAlign='left';
-  wrapText(cutText.substring(0,cutShown),bx+18,by+14,bw-36,27);
+  ctx.fillStyle='#fff'; ctx.font='23px "Courier New",monospace'; ctx.textAlign='left';
+  wrapText(cutText.substring(0,cutShown),bx+18,by+14,bw-36,30);
   if(cut.choice && cutShown>=cutText.length && cut.idx>=cut.pages.length-1){
     const sel=cut.choice.sel||0;
-    txt('* '+cut.choice.q,bx+18,by-78,15,'#ff3','left');
-    for(let i=0;i<cut.choice.opts.length;i++){ const yy=by-50+i*24;
-      txt((i===sel?'> ':'  ')+cut.choice.opts[i].label,bx+30,yy,16,i===sel?'#ff3':'#aaa','left'); }
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(bx,by-92,bw,84);
+    txt('* '+cut.choice.q,bx+18,by-84,18,'#ff3','left');
+    for(let i=0;i<cut.choice.opts.length;i++){ const yy=by-54+i*26;
+      txt((i===sel?'▶ ':'   ')+cut.choice.opts[i].label,bx+30,yy,19,i===sel?'#ff3':'#aaa','left'); }
   } else if(cutShown>=cutText.length && Math.floor(Date.now()/400)%2===0){
     txt('▼',bx+bw-26,by+bh-28,16,'#fff','left');
   }
@@ -2441,7 +2495,14 @@ function drawBattle(){
     if(enemy.final && enemy.downed){ col='#ff6'; tag='   （ひざを ついている）'; }
     txt('* '+nm+tag,W/2,232,enemy.final?17:19,col,'center'); }
   if(state===ST.DIALOG||state===ST.RESULT) drawDialogBox();
-  else if(state===ST.ENEMY||state===ST.FIGHTBAR){ drawBox(); if(state===ST.ENEMY)drawBulletsAndSoul(); else drawFightBar(); }
+  else if(state===ST.ENEMY){
+    // 攻撃ターン: 箱・弾・ハートを まとめて 拡大表示（上端中央を 基準に 下＝ボタンの方へ 広げる）
+    const b=bphase.box, cx=b.x+b.w/2, oy=b.y;
+    ctx.save(); ctx.translate(cx,oy); ctx.scale(DODGE_SCALE,DODGE_SCALE); ctx.translate(-cx,-oy);
+    drawBox(); drawBulletsAndSoul();
+    ctx.restore();
+  }
+  else if(state===ST.FIGHTBAR){ drawBox(); drawFightBar(); }
   else { drawBox(); if(state===ST.MENU) drawBattleMsg(); }   // 行動選択中は 状況テキストを 出す
   drawHUD();
   if(state===ST.MENU)drawMenu();
@@ -2481,13 +2542,13 @@ function drawOverworldDialog(){
   const bx=40,by=H-150,bw=W-80,bh=110;
   ctx.fillStyle='rgba(0,0,0,0.8)'; ctx.fillRect(bx,by,bw,bh);
   ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.strokeRect(bx,by,bw,bh);
-  ctx.fillStyle='#fff'; ctx.font='19px "Courier New",monospace'; ctx.textAlign='left';
-  wrapText('* '+dialogText.substring(0,dialogShown),bx+16,by+14,bw-32,25);
+  ctx.fillStyle='#fff'; ctx.font='22px "Courier New",monospace'; ctx.textAlign='left';
+  wrapText('* '+dialogText.substring(0,dialogShown),bx+16,by+14,bw-32,28);
   if(dialogShown>=dialogText.length && Math.floor(Date.now()/400)%2===0) txt('▼',bx+bw-26,by+bh-28,16,'#fff');
 }
 function drawDialogBox(){const b=bphase.box;ctx.strokeStyle='#fff';ctx.lineWidth=3;ctx.strokeRect(b.x,b.y,b.w,b.h);
-  ctx.fillStyle='#fff';ctx.font='18px "Courier New",monospace';ctx.textAlign='left';
-  wrapText('* '+dialogText.substring(0,dialogShown),b.x+12,b.y+14,b.w-24,23);
+  ctx.fillStyle='#fff';ctx.font='20px "Courier New",monospace';ctx.textAlign='left';
+  wrapText('* '+dialogText.substring(0,dialogShown),b.x+12,b.y+14,b.w-24,26);
   if(state===ST.DIALOG&&dialogShown>=dialogText.length&&Math.floor(Date.now()/400)%2===0)txt('▼',b.x+b.w-22,b.y+b.h-26,16,'#fff');}
 function drawMenu(){const y=H-70;
   const mercyBroke = enemy&&enemy.final&&enemy.mercyBroken&&!enemy.downed;

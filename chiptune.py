@@ -599,12 +599,60 @@ def make_berg(path):
     s.drum((8-1)*4+0,'kick',0.5)
     s.save(path)
 
+# =========================================================
+#  エンディング ── タイトル曲(C major / オルゴール)の メロディ・進行を「踏襲」した 3種
+#  共通モチーフ: title_lead を 引用し、結末の 感情ごとに 編曲を 変える。
+# =========================================================
+TITLE_PROG=[(48,'maj'),(57,'min'),(53,'maj'),(55,'maj')]   # C - Am - F - G
+TITLE_LEAD=[
+    [(0,1,72),(1,1,76),(2,2,79)],[(0,1,74),(1,1,72),(2,2,69)],
+    [(0,1,77),(1,1,76),(2,2,72)],[(0,2,74),(2,2,71)],
+    [(0,1,79),(1,1,76),(2,2,72)],[(0,1,72),(1,1,69),(2,2,76)],
+    [(0,1,81),(1,1,77),(2,2,72)],[(0,4,72)],
+]
+def make_end_true(path):
+    # 真・やさしい結末: タイトルを 豪華に・あたたかく 再現（2周。2周目は 1oct上＋厚いパッド＋鐘）
+    s=Song(82, 16*4+2)
+    build(s,0,TITLE_PROG,8,TITLE_LEAD,drums=False,arp=True,arp_kind='tri',arp_pat='bell',
+          arp_duty=0.5,arp_oct=24,arp_vol=0.09,pad=True,bass_pat='soft',bass_vol=0.30,
+          lead_kind='tri',lead_vol=0.26,lead_r=0.20)
+    build(s,8,TITLE_PROG,8,TITLE_LEAD,drums=True,hat=True,drum_vol=0.28,arp=True,arp_kind='tri',
+          arp_pat='bell',arp_duty=0.5,arp_oct=24,arp_vol=0.11,pad=True,bass_pat='walk',
+          bass_vol=0.34,lead_kind='tri',lead_vol=0.31,lead_r=0.16,octave=12)
+    # 全体に 低い 支え（荘厳さ）
+    for bar in range(16):
+        root=TITLE_PROG[bar%4][0]
+        s.note(bar*4,3.9,root-12,kind='tri',vol=0.16,a=0.05,d=0.2,s=0.85,r=0.5)
+    s.save(path)
+def make_end_bitter(path):
+    # ほろにがい/王を討った結末: タイトルの 旋律を ゆっくり・もの哀しく（短調へ 傾ける）
+    s=Song(70, 8*4+2)
+    prog=[(48,'maj'),(57,'min'),(53,'maj'),(52,'min')]   # 最後を Em に して 翳らせる
+    build(s,0,prog,8,TITLE_LEAD,drums=False,arp=True,arp_kind='tri',arp_pat='soft',
+          arp_duty=0.5,arp_oct=12,arp_vol=0.06,pad=True,bass_pat='soft',bass_vol=0.30,
+          lead_kind='tri',lead_vol=0.25,lead_r=0.24)
+    s.save(path)
+def make_end_dark(path):
+    # むなしい結末: タイトルの 断片だけが、うつろに 響く（不協和を ひとつまみ・とても遅い）
+    s=Song(58, 8*4+2)
+    prog=[(48,'maj'),(56,'dim'),(53,'min'),(55,'min'),
+          (48,'maj'),(56,'dim'),(51,'min'),(43,'min')]
+    lead=[
+        [(0,2,72),(2,2,76)],[(0,4,75)],[(0,2,72),(2,2,69)],[(0,4,67)],
+        [(0,2,72),(2,2,76)],[(0,4,74)],[(0,2,71),(2,2,67)],[(0,4,60)],
+    ]
+    build(s,0,prog,8,lead,drums=False,arp=False,pad=True,bass_pat='soft',
+          bass_vol=0.28,lead_kind='tri',lead_vol=0.22,lead_r=0.22)
+    s.save(path)
+
 ALL={'battle':make_argor_battle,'intro':make_argor_intro,'title':make_title,'berg':make_berg,
+     'end_true':make_end_true,'end_bitter':make_end_bitter,'end_dark':make_end_dark,
      'explore':make_explore,'zako':make_battle,'boss':make_boss,'sad':make_sad,
      'hopeful':make_hopeful,'dark':make_dark,'gameover':make_gameover,
      'homura':make_homura,'homura_boss':make_homura_boss,
      'water':make_area_water,'theater':make_area_theater,'factory':make_area_factory}
 PATH={'battle':'music/argor_battle','intro':'music/argor_intro','title':'music/title','berg':'music/berg',
+      'end_true':'music/end_true','end_bitter':'music/end_bitter','end_dark':'music/end_dark',
       'explore':'music/explore','zako':'music/battle','boss':'music/boss','sad':'music/sad',
       'hopeful':'music/hopeful','dark':'music/dark','gameover':'music/gameover',
       'homura':'music/homura','homura_boss':'music/homura_boss',
