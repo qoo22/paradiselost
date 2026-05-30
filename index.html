@@ -34,6 +34,10 @@
     overflow:hidden; touch-action:none; }
   #tp:active{ border-color:#6a6a6a; }
   #tpsurf{ position:absolute; inset:0; touch-action:none; background:rgba(255,255,255,0.02); }
+  /* 敵の攻撃中: ドラッグの点（速度上限つきで ハートを 動かす目印） */
+  #tpdot{ position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px; border-radius:50%;
+    background:radial-gradient(circle,#ffe 0%,#f33 70%); box-shadow:0 0 10px #f00;
+    display:none; z-index:2; pointer-events:none; }
   /* 薄い 擬似十字キー（メインは トラックパッドなので 控えめ） */
   .tpk{ position:absolute; color:#fff; opacity:0.16; font-size:19px; pointer-events:none;
     left:50%; top:50%; transform:translate(-50%,-50%); }
@@ -78,6 +82,7 @@
         <span class="tpk tpk-l">◀</span>
         <span class="tpk tpk-r">▶</span>
         <span class="tpk tpk-c">けってい</span>
+        <div id="tpdot"></div>
       </div>
     </div>
   </div>
@@ -135,32 +140,45 @@ function soulMoveRel(dx,dy){ const box=bphase.box,pad=6;
   cv.addEventListener('touchstart',tap,{passive:false});
   cv.addEventListener('mousedown',tap);
 })();
-/* トラックパッド: なぞって移動（弾幕は相対移動／メニューは方向ステップ）・タップ＝けってい */
+/* トラックパッド:
+   ・敵の攻撃中(isDodge): どこを 押しても「ドラッグ」。倒した方向へ 一定速度(上限あり)で ハートが 動き、点で 見える。
+   ・それ以外: 内部の 擬似十字キー＝長押しで その方向を 入力しつづける（マップ移動・メニュー選択）。中央タップ＝けってい。*/
 (function(){
-  const surf=document.getElementById('tpsurf'); if(!surf) return;
-  const tp={active:false,sx:0,sy:0,lx:0,ly:0,ax:0,ay:0,moved:false,t0:0};
+  const tpEl=document.getElementById('tp'), surf=document.getElementById('tpsurf'); if(!surf||!tpEl) return;
+  const dot=document.getElementById('tpdot');
+  const tp={active:false, mode:null, dir:null, ax:0, ay:0, moved:false, t0:0, rep:0};
   function p(e){ const t=(e.touches&&e.touches[0])||(e.changedTouches&&e.changedTouches[0])||e; return {x:t.clientX,y:t.clientY}; }
+  function rect(){ return tpEl.getBoundingClientRect(); }
+  function hold(dir,on){ if(!dir)return; if(on){ if(!keys[dir])pressed[dir]=true; keys[dir]=true; } else { keys[dir]=false; } }
+  function clearDir(){ if(tp.dir){ hold(tp.dir,false); tp.dir=null; } if(tp.rep){ clearInterval(tp.rep); tp.rep=0; } }
+  function setVel(ox,oy){ const S=0.085, MAX=4.0; let vx=ox*S, vy=oy*S; const m=Math.hypot(vx,vy);
+    if(m>MAX){ vx=vx/m*MAX; vy=vy/m*MAX; } padVX=vx; padVY=vy; }   // 速度上限 MAX
+  function showDot(x,y){ if(!dot)return; const r=rect();
+    dot.style.left=Math.max(8,Math.min(r.width-8, x-r.left))+'px';
+    dot.style.top =Math.max(8,Math.min(r.height-8,y-r.top ))+'px'; dot.style.display='block'; }
+  function hideDot(){ if(dot)dot.style.display='none'; }
+  function zone(q){ const r=rect(); const nx=(q.x-(r.left+r.width/2))/(r.width/2), ny=(q.y-(r.top+r.height/2))/(r.height/2);
+    if(Math.hypot(nx,ny)<0.40) return 'c';
+    return Math.abs(nx)>Math.abs(ny) ? (nx>0?'right':'left') : (ny>0?'down':'up'); }
   function start(e){ e.preventDefault(); ensureAudio(); const q=p(e);
-    tp.active=true; tp.sx=q.x; tp.sy=q.y; tp.lx=q.x; tp.ly=q.y; tp.ax=0; tp.ay=0; tp.moved=false; tp.t0=Date.now(); }
+    tp.active=true; tp.ax=q.x; tp.ay=q.y; tp.moved=false; tp.t0=Date.now(); clearDir();
+    if(isDodge()){ tp.mode='drag'; padVX=0; padVY=0; showDot(q.x,q.y); }
+    else { const z=zone(q);
+      if(z==='c'){ tp.mode='tap'; }
+      else { tp.mode='dir'; tp.dir=z; hold(z,true); tp.rep=setInterval(()=>{ if(tp.dir)pressed[tp.dir]=true; },150); } }
+  }
   function move(e){ if(!tp.active)return; e.preventDefault(); const q=p(e);
-    const dx=q.x-tp.lx, dy=q.y-tp.ly; tp.lx=q.x; tp.ly=q.y;
-    if(Math.abs(dx)+Math.abs(dy)>2) tp.moved=true;
-    if(isDodge()){ soulMoveRel(dx*2.0, dy*2.0); }          // 弾幕: なめらかな 相対移動
-    else { tp.ax+=dx; tp.ay+=dy; const S=24;               // メニュー: なぞった方向に ステップ
-      if(tp.ax>=S){ pressed.right=true; tp.ax=0; tp.ay=0; }
-      else if(tp.ax<=-S){ pressed.left=true; tp.ax=0; tp.ay=0; }
-      else if(tp.ay>=S){ pressed.down=true; tp.ax=0; tp.ay=0; }
-      else if(tp.ay<=-S){ pressed.up=true; tp.ax=0; tp.ay=0; } }
+    if(Math.abs(q.x-tp.ax)+Math.abs(q.y-tp.ay)>3) tp.moved=true;
+    if(tp.mode==='drag'){ setVel(q.x-tp.ax, q.y-tp.ay); showDot(q.x,q.y); }
+    else if(tp.mode==='dir'){ const z=zone(q); if(z!=='c' && z!==tp.dir){ hold(tp.dir,false); tp.dir=z; hold(z,true); } }
   }
   function end(e){ if(e&&e.preventDefault)e.preventDefault(); if(!tp.active)return; tp.active=false;
-    if(tp.moved || Date.now()-tp.t0>=340) return;
-    // タップ＝擬似十字キー: 触れた場所で 上下左右／中央(けってい)を 判定（選択操作）
-    const r=surf.getBoundingClientRect();
-    const nx=(tp.sx-(r.left+r.width/2))/(r.width/2), ny=(tp.sy-(r.top+r.height/2))/(r.height/2);
-    if(Math.hypot(nx,ny)<0.42){ pressed.confirm=true; }            // 中央 → けってい
-    else if(Math.abs(nx)>Math.abs(ny)){ pressed[nx>0?'right':'left']=true; }
-    else { pressed[ny>0?'down':'up']=true; } }
-  // 開始は トラックパッド上、移動・終了は document で 拾う（指が 枠外へ ずれても 確実に 動く）
+    if(tp.mode==='drag'){ padVX=0; padVY=0; hideDot(); }
+    else if(tp.mode==='dir'){ clearDir(); }
+    else if(tp.mode==='tap'){ if(!tp.moved && Date.now()-tp.t0<340) pressed.confirm=true; }
+    tp.mode=null;
+  }
+  // 開始は トラックパッド上、移動・終了は document で 拾う（指が 枠外へ ずれても 確実に）
   surf.addEventListener('touchstart',start,{passive:false});
   document.addEventListener('touchmove',move,{passive:false});
   document.addEventListener('touchend',end,{passive:false});
@@ -1443,15 +1461,15 @@ function smokeTutorial(){
 }
 function startSmokeTut(){
   bphase.box={x:W/2-110,y:255,w:220,h:135};
-  soul.x=bphase.box.x+26; soul.y=bphase.box.y+bphase.box.h/2; soul.px=soul.x; soul.py=soul.y; soul.invuln=0;
+  soul.x=bphase.box.x+26; soul.y=bphase.box.y+bphase.box.h/2; soul.px=soul.x; soul.py=soul.y; soul.invuln=0; padVX=0; padVY=0;
   tut.orb={ x:bphase.box.x+bphase.box.w-32, base:bphase.box.y+bphase.box.h/2, y:bphase.box.y+bphase.box.h/2, ph:0, r:9, got:false };
   state=ST.TUTORIAL; clearPressed();
 }
 function updateTutorial(){
   const box=bphase.box, o=tut.orb; if(!o)return; const pad=6;
-  const sp=2.7; let kx=0,ky=0;   // キーボード（トラックパッドは イベントで soul を 直接動かす）
+  const sp=2.7; let kx=0,ky=0;   // キーボード＋トラックパッドの ドラッグ速度
   if(keys.left)kx-=sp;if(keys.right)kx+=sp;if(keys.up)ky-=sp;if(keys.down)ky+=sp;
-  soul.x+=kx; soul.y+=ky;
+  soul.x+=kx+padVX; soul.y+=ky+padVY;
   soul.x=Math.max(box.x+pad,Math.min(box.x+box.w-pad,soul.x));
   soul.y=Math.max(box.y+pad,Math.min(box.y+box.h-pad,soul.y));
   o.ph+=0.05; o.y=o.base+Math.sin(o.ph)*10;   // かけらは ふわふわ
@@ -1766,7 +1784,7 @@ function drawWalk(){
   // バナー
   if(roomBannerT>0){ ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,60,20,'#fff','center'); ctx.globalAlpha=1; }
   // 下部ヒント
-  txt('↑↓←→ あるく   Z しらべる/すすむ',W/2,H-24,12,'#555','center');
+  txt(IS_TOUCH?'十字キーで あるく ・ タップで しらべる/すすむ':'↑↓←→ あるく   Z しらべる/すすむ',W/2,H-24,12,'#555','center');
 }
 
 /* =======================  戦闘  ======================= */
@@ -1778,6 +1796,7 @@ let subType='',subIndex=0,subOptions=[];
 let dialogLines=[],dialogText='',dialogShown=0,dialogTimer=0,afterDialog=null,dialogReturnWalk=false;
 const bphase={active:false,t:0,frames:0,bullets:[],box:{x:0,y:0,w:0,h:0}};
 const soul={x:0,y:0,invuln:0,px:0,py:0};
+let padVX=0, padVY=0;   // トラックパッドの ドラッグ速度（上限つき・毎フレーム ハートへ 加える）
 let shake=0,flash=0,fightHitFlash=0,fightBarX=0,fightBarDir=1,fightBarLock=-1,resultTimer=0,resultNext=null;
 /* 行動選択中ずっと 戦闘ボックスに のこす「いまの 状況・表情」テキスト。
    戦闘に入った とき と 毎ターン 必ず 更新し、メニュー表示中に 見えつづける。 */
@@ -2164,7 +2183,7 @@ function argorDefeated(){ enemy.downed=true; shake=12; playTheme('argor_sad');
 function openFinalChoice(){ subType='final'; subIndex=1; subOptions=['とどめを さす','てを さしのべる']; state=ST.SUB; clearPressed(); }
 function enemyTurn(){ if(enemy.hp<=0)return; state=ST.ENEMY; bphase.active=true; bphase.t=0; bphase.bullets=[];
   bphase.frames=enemy.turnFrames; soul.x=bphase.box.x+bphase.box.w/2; soul.y=bphase.box.y+bphase.box.h/2;
-  soul.px=soul.x; soul.py=soul.y; soul.invuln=0; clearPressed(); }
+  soul.px=soul.x; soul.py=soul.y; soul.invuln=0; padVX=0; padVY=0; clearPressed(); }
 function endEnemyTurn(){ bphase.active=false;
   // 毎ターン、いまの 状況（状態・表情）を 説明 → そのまま ボックスに のこして 行動選択へ
   battleMsg=battleStatus(enemy); say([battleMsg],()=>toMenu()); }
@@ -2283,9 +2302,9 @@ function resetGame(){ Object.assign(player,{hp:20,maxhp:20,lv:1,exp:0,gold:0,can
 
 function updateBulletPhase(){
   const b=bphase,box=b.box; b.t++; const pad=6;
-  const sp=2.7; let kx=0,ky=0;    // キーボード／PC（トラックパッドは イベントで soul を 直接動かす）
+  const sp=2.7; let kx=0,ky=0;    // キーボード＋トラックパッドの ドラッグ速度(padVX/VY:上限あり)
   if(keys.left)kx-=sp;if(keys.right)kx+=sp;if(keys.up)ky-=sp;if(keys.down)ky+=sp;
-  soul.x+=kx; soul.y+=ky;
+  soul.x+=kx+padVX; soul.y+=ky+padVY;
   soul.x=Math.max(box.x+pad,Math.min(box.x+box.w-pad,soul.x));
   soul.y=Math.max(box.y+pad,Math.min(box.y+box.h-pad,soul.y));
   const moving=(Math.hypot(soul.x-soul.px, soul.y-soul.py) > 0.8);   // 1フレームの 実移動量で 判定
