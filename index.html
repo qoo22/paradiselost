@@ -1754,14 +1754,18 @@ let puzzle=null; const PUZ_T=44, PUZ_OX=72, PUZ_OY=150;
 function tileCX(i){ return PUZ_OX+i*PUZ_T+PUZ_T/2; }
 function tileCY(j){ return PUZ_OY+j*PUZ_T+PUZ_T/2; }
 function gatesOpen(P){ return P.plates.length>0 && P.plates.every(p=>P.blocks.some(b=>b.i===p.i&&b.j===p.j)); }
+const EMIT_DIR={'>':[1,0],'<':[-1,0],'^':[0,-1],'v':[0,1]};
 function buildPuzzleState(cfg){
   const P={ cfg, walls:new Set(), floor:new Set(), ice:new Set(), plates:[], blocks:[], items:[], gates:[], door:null,
+            mirrors:[], emitter:null, emblem:null, lever:null, waterHigh:!!cfg.startHigh, lowTiles:new Set(), deepTiles:new Set(),
             gx:0,gy:0, moveCD:0, opened:false, msg:'', msgT:0, after:cfg.after||advance };
   cfg.map.forEach((r,j)=>{ for(let i=0;i<r.length;i++){ const ch=r[i], k=i+','+j;
     if(ch==='#'){ P.walls.add(k); }
     else if(ch===' '){ /* void */ }
     else { P.floor.add(k); }                         // それ以外は すべて 床
     if(ch==='I'||ch==='i'){ P.ice.add(k); }          // 氷の床（すべる）
+    else if(ch==='w'){ P.lowTiles.add(k); }          // 低い 道（水位が 低い ときだけ 通れる）
+    else if(ch==='~'){ P.deepTiles.add(k); }         // 深い 水/穴（水位が 高い ときだけ 渡れる）
     if(ch==='@'){ P.gx=i; P.gy=j; }
     else if(ch==='O'){ P.blocks.push({i,j}); }
     else if(ch==='*'){ P.plates.push({i,j}); }
@@ -1769,9 +1773,35 @@ function buildPuzzleState(cfg){
     else if(ch==='G'){ P.gates.push({i,j}); }        // スイッチで ひらく 石戸
     else if(ch==='D'){ P.door={i,j}; }
     else if(ch==='K'){ P.items.push({i,j,item:cfg.keyItem||{key:'oldkey',label:'古い 鍵',desc:'どこかの とびらを ひらく 鍵。'}}); }
+    else if(ch==='/'){ P.mirrors.push({i,j,o:0}); }  // 鏡 '/'
+    else if(ch==='\\'){ P.mirrors.push({i,j,o:1}); } // 鏡 '\'
+    else if(EMIT_DIR[ch]){ P.emitter={i,j,dir:EMIT_DIR[ch]}; }  // 光源
+    else if(ch==='E'){ P.emblem={i,j}; }             // 紋章（光を 当てる 的）
+    else if(ch==='V'){ P.lever={i,j}; }              // 水門の レバー
   }});
-  if(puzzleSolved(P)) P.opened=true;                 // 鍵を 既に 持って いれば 扉は 開いた ままに
+  if(puzzleSolved(P)) P.opened=true;                 // 既に 達成済みなら 扉は 開いた ままに
   return P;
+}
+/* 光の ビーム追跡: 光源から まっすぐ 進み、鏡で 反射、紋章に 当たれば hit。壁・石・閉じた石戸で 止まる */
+function traceBeam(P){
+  if(!P.emitter) return {hit:false, segs:[]};
+  let i=P.emitter.i, j=P.emitter.j, [di,dj]=P.emitter.dir;
+  const segs=[]; const seen=new Set(); let steps=0;
+  while(steps++<300){
+    const ni=i+di, nj=j+dj, k=ni+','+nj;
+    if(P.walls.has(k)||!P.floor.has(k)) { segs.push({x1:i,y1:j,x2:ni,y2:nj}); break; }   // 壁/外で 止まる
+    if(P.gates.some(g=>g.i===ni&&g.j===nj)&&!gatesOpen(P)){ segs.push({x1:i,y1:j,x2:ni,y2:nj}); break; }
+    if(P.blocks.some(b=>b.i===ni&&b.j===nj)){ segs.push({x1:i,y1:j,x2:ni,y2:nj}); break; }
+    segs.push({x1:i,y1:j,x2:ni,y2:nj});
+    if(P.emblem&&P.emblem.i===ni&&P.emblem.j===nj){ return {hit:true, segs}; }
+    const m=P.mirrors.find(m=>m.i===ni&&m.j===nj);
+    if(m){ // 反射: '/'(o0): →↑ ↑→ ←↓ ↓← ／ '\'(o1): →↓ ↓→ ←↑ ↑←
+      if(m.o===0){ [di,dj]=[-dj,-di]; } else { [di,dj]=[dj,di]; }
+    }
+    const sig=ni+','+nj+','+di+','+dj; if(seen.has(sig)){ break; } seen.add(sig);
+    i=ni; j=nj;
+  }
+  return {hit:false, segs};
 }
 function startPuzzle(cfg){
   puzzle=buildPuzzleState(cfg); state=ST.PUZZLE; clearPressed();
@@ -1781,6 +1811,7 @@ function startPuzzle(cfg){
   }
 }
 function puzzleSolved(P){
+  if(P.cfg.win==='light') return traceBeam(P).hit;
   const platesOK = P.plates.length? P.plates.every(p=>P.blocks.some(b=>b.i===p.i&&b.j===p.j)) : true;
   const keyOK = (P.cfg.win==='key'||P.cfg.win==='both')? hasItem(P.cfg.needKey||'oldkey') : true;
   if(P.cfg.win==='key') return keyOK;
@@ -1796,6 +1827,15 @@ function updatePuzzle(){
   if(keys.left)di=-1; else if(keys.right)di=1; else if(keys.up)dj=-1; else if(keys.down)dj=1;
   if(!di&&!dj) return;
   const ni=P.gx+di, nj=P.gy+dj;
+  // 鏡を ぶつけて 回す
+  const mir=P.mirrors.find(m=>m.i===ni&&m.j===nj);
+  if(mir){ mir.o^=1; se('select'); pMsg(P,'石像が、くるりと むきを かえた。'); P.moveCD=8; checkOpen(P); return; }
+  // 水門の レバー
+  if(P.lever&&P.lever.i===ni&&P.lever.j===nj){ P.waterHigh=!P.waterHigh; se('heal');
+    pMsg(P, P.waterHigh?'ゴオォ ── 水位が 上がった。':'ザアァ ── 水位が 下がった。'); P.moveCD=12; checkOpen(P); return; }
+  // 光源・紋章は 動かせない
+  if((P.emitter&&P.emitter.i===ni&&P.emitter.j===nj)){ se('cancel'); pMsg(P,'ひかりの もと。さわれない。'); P.moveCD=8; return; }
+  if((P.emblem&&P.emblem.i===ni&&P.emblem.j===nj)){ se('cancel'); pMsg(P, traceBeam(P).hit?'紋章が、まばゆく かがやいている。':'かべの 紋章。ひかりを 当てたい。'); P.moveCD=8; return; }
   if(!puzCanEnter(P,ni,nj)){ se('cancel'); P.moveCD=6; return; }
   const b=P.blocks.find(x=>x.i===ni&&x.j===nj);
   if(b){                                             // 石を 押す
@@ -1824,6 +1864,12 @@ function updatePuzzle(){
 function puzCanEnter(P,i,j){ const k=i+','+j;
   if(!P.floor.has(k)||P.walls.has(k)) return false;
   if(P.gates.some(g=>g.i===i&&g.j===j)&&!gatesOpen(P)) return false;
+  if(P.deepTiles.has(k)&&!P.waterHigh) return false;   // 深い 水/穴は 水位が 高い ときだけ
+  if(P.lowTiles.has(k)&&P.waterHigh) return false;      // 低い 道は 水位が 低い ときだけ
+  if(P.emitter&&P.emitter.i===i&&P.emitter.j===j) return false;
+  if(P.emblem&&P.emblem.i===i&&P.emblem.j===j) return false;
+  if(P.lever&&P.lever.i===i&&P.lever.j===j) return false;
+  if(P.mirrors.some(m=>m.i===i&&m.j===j)) return false;
   return true; }
 function puzIsIce(P,i,j){ return P.ice.has(i+','+j); }
 function checkOpen(P){ if(!P.opened&&puzzleSolved(P)){ P.opened=true; se('save'); pMsg(P, P.cfg.solvedMsg||'カチリ ── とびらの かぎが あいた。'); } }
@@ -1842,6 +1888,39 @@ function drawPuzzle(){
     if(gopen){ ctx.strokeStyle='#3a6a44'; ctx.lineWidth=1; ctx.strokeRect(x+4,y+4,PUZ_T-8,PUZ_T-8); }
     else { ctx.fillStyle='#2a2a34'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2);
       ctx.strokeStyle='#8890b8'; ctx.lineWidth=2; for(let bx=x+9;bx<x+PUZ_T-5;bx+=8){ ctx.beginPath(); ctx.moveTo(bx,y+5); ctx.lineTo(bx,y+PUZ_T-5); ctx.stroke(); } } } }
+  // 水位タイル（低い道 / 深い水・穴）── 現在の 水位で 見た目が 変わる
+  const wav=Math.sin(Date.now()*0.004)*1.5;
+  P.lowTiles.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
+    if(P.waterHigh){ ctx.fillStyle='#27506b'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#4f86ad'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x+4,y+PUZ_T/2+wav); ctx.lineTo(x+PUZ_T-4,y+PUZ_T/2-wav); ctx.stroke(); }
+    else { ctx.fillStyle='#23211c'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#5a513a'; ctx.lineWidth=1; ctx.strokeRect(x+3,y+3,PUZ_T-6,PUZ_T-6); } });
+  P.deepTiles.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
+    if(P.waterHigh){ ctx.fillStyle='#1d5a86'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#6fb0d6'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(x+4,y+PUZ_T/2-wav); ctx.lineTo(x+PUZ_T-4,y+PUZ_T/2+wav); ctx.stroke(); }
+    else { ctx.fillStyle='#070708'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#1a1a1a'; ctx.strokeRect(x+1,y+1,PUZ_T-2,PUZ_T-2); } });
+  // 光の ビーム
+  if(P.emitter){ const tb=traceBeam(P); ctx.strokeStyle='#ffe9a0'; ctx.lineWidth=3; ctx.globalAlpha=0.9;
+    for(const s of tb.segs){ ctx.beginPath(); ctx.moveTo(tileCX(s.x1),tileCY(s.y1)); ctx.lineTo(tileCX(s.x2),tileCY(s.y2)); ctx.stroke(); }
+    ctx.globalAlpha=1;
+    const e=P.emitter,x=tileCX(e.i),y=tileCY(e.j); ctx.fillStyle='#ffd24a'; ctx.beginPath(); ctx.arc(x,y,11,0,7); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,5,0,7); ctx.fill(); }
+  // 鏡（石像）
+  for(const m of P.mirrors){ const x=tileCX(m.i),y=tileCY(m.j);
+    ctx.fillStyle='#3a3a42'; ctx.fillRect(x-15,y-15,30,30); ctx.strokeStyle='#888'; ctx.lineWidth=1; ctx.strokeRect(x-15,y-15,30,30);
+    ctx.strokeStyle='#cfe6ff'; ctx.lineWidth=4; ctx.beginPath();
+    if(m.o===0){ ctx.moveTo(x-11,y+11); ctx.lineTo(x+11,y-11); } else { ctx.moveTo(x-11,y-11); ctx.lineTo(x+11,y+11); }
+    ctx.stroke(); }
+  // 紋章
+  if(P.emblem){ const x=tileCX(P.emblem.i),y=tileCY(P.emblem.j),hit=traceBeam(P).hit;
+    ctx.strokeStyle=hit?'#ffe27a':'#888'; ctx.lineWidth=hit?3:2;
+    ctx.beginPath(); ctx.arc(x,y,14,0,7); ctx.stroke();
+    ctx.beginPath(); for(let a=0;a<6;a++){ const an=a/6*Math.PI*2-Math.PI/2,r=a%2?5:11; const px=x+Math.cos(an)*r,py=y+Math.sin(an)*r; a?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); ctx.stroke();
+    if(hit){ ctx.fillStyle='rgba(255,226,122,0.35)'; ctx.beginPath(); ctx.arc(x,y,20,0,7); ctx.fill(); } }
+  // 水門レバー
+  if(P.lever){ const x=tileCX(P.lever.i),y=tileCY(P.lever.j);
+    ctx.strokeStyle='#aaa'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(x,y+12); ctx.lineTo(x+(P.waterHigh?9:-9),y-10); ctx.stroke();
+    ctx.fillStyle=P.waterHigh?'#6fb0d6':'#c98'; ctx.beginPath(); ctx.arc(x+(P.waterHigh?9:-9),y-12,5,0,7); ctx.fill();
+    txt('レバー',x,y+26,11,'#9ab','center'); }
   for(const p of P.plates){ const cx=tileCX(p.i),cy=tileCY(p.j),covered=P.blocks.some(b=>b.i===p.i&&b.j===p.j);
     ctx.strokeStyle=covered?'#fc3':'#7a7a7a'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx,cy,4,0,7); ctx.stroke(); }
@@ -1999,11 +2078,82 @@ function drawMemory(){
   if(M.msgT>0){ ctx.globalAlpha=Math.min(1,M.msgT/30); txt(M.msg,W/2,H-60,18,M.msg[0]==='ち'?'#f66':'#fc6','center'); ctx.globalAlpha=1; }
 }
 
+/* =======================  演奏（ST.MUSIC）── 笛で しらべを 奏でる  =======================
+   壁画の しらべと 同じ 順に 音を 鳴らすと、扉が ひらく */
+let music=null;
+const MUSIC_FREQ=[262,294,330,349,392], NOTE_NAMES=['ド','レ','ミ','ファ','ソ'];
+function musicTone(i){ if(!AC||muted)return; blip(MUSIC_FREQ[i%MUSIC_FREQ.length],0.32,'triangle',0.4,AC.currentTime); }
+function startMusic(cfg){
+  music={ cfg, n:NOTE_NAMES.length, target:cfg.song, inp:[], sel:0, after:cfg.after||advance, msg:'', msgT:0, flash:-1, flashT:0 };
+  state=ST.MUSIC; clearPressed();
+}
+function updateMusic(){
+  const M=music; if(!M)return; if(M.msgT>0)M.msgT--; if(M.flashT>0){M.flashT--; if(M.flashT===0)M.flash=-1;}
+  if(consume('left')){ M.sel=(M.sel+M.n-1)%M.n; se('select'); }
+  if(consume('right')){ M.sel=(M.sel+1)%M.n; se('select'); }
+  if(consume('cancel')){ se('cancel'); if(M.inp.length){ M.inp=[]; M.msg='はじめから 吹きなおす'; M.msgT=70; } else { music=null; state=ST.WALK; clearPressed(); } return; }
+  if(consume('confirm')){ M.flash=M.sel; M.flashT=16; musicTone(M.sel); M.inp.push(M.sel);
+    const i=M.inp.length-1;
+    if(M.inp[i]!==M.target[i]){ se('hurt'); M.msg='しらべが、ちがう みたい…'; M.msgT=100; M.inp=[]; return; }
+    if(M.inp.length===M.target.length){ se('spare'); const af=M.after, cfg=M.cfg; music=null;
+      cutscene(cfg.bg||'title_bg', cfg.solved||['しらべが ひびきわたり、扉が ひらいた。'], ()=>af&&af(), {dark:0.5}); return; }
+  }
+}
+function drawMusic(){
+  const M=music; if(!M)return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(M.cfg.bg&&IMG[M.cfg.bg]) drawImgCover(IMG[M.cfg.bg],0.84);
+  txt(M.cfg.title||'うたう ほこら',W/2,68,25,'#fff','center');
+  txt('壁画の しらべ:',W/2,108,15,'#bda','center');
+  txt(M.target.map(i=>NOTE_NAMES[i]).join(' '),W/2,134,22,'#ffe27a','center');
+  // 吹いた ぶん
+  txt('いま: '+(M.inp.map(i=>NOTE_NAMES[i]).join(' ')||'──'),W/2,176,17,'#9cf','center');
+  const n=M.n, bw=64, gap=12, tot=n*bw+(n-1)*gap, x0=W/2-tot/2, y=240;
+  for(let i=0;i<n;i++){ const x=x0+i*(bw+gap), s=(i===M.sel), lit=(M.flash===i);
+    ctx.fillStyle=lit?'#ffe27a':'#222'; ctx.fillRect(x,y,bw,80);
+    ctx.strokeStyle=lit?'#fff':(s?'#ff3':'#777'); ctx.lineWidth=s?3:2; ctx.strokeRect(x,y,bw,80);
+    txt(NOTE_NAMES[i],x+bw/2,y+50,26,lit?'#222':(s?'#ff3':'#ccc'),'center'); }
+  txt(IS_TOUCH?'←→ えらぶ ・ 中央タップ: 吹く ・ もどる: 吹きなおし':'←→ えらぶ  Z 吹く  X 吹きなおし',W/2,H-32,14,'#888','center');
+  if(M.msgT>0){ ctx.globalAlpha=Math.min(1,M.msgT/30); txt(M.msg,W/2,H-60,18,'#f66','center'); ctx.globalAlpha=1; }
+}
+
 /* こうじょう: 番人の 錠前（記号 → 数字 → 右から左 で 読む）*/
 function codeLockCfg(){ return {
   title:'番人の 錠前', bg:'bg_factory', code:[1,4,1,9],
   riddle:['錠前に きざまれた しるし:','「 灰   火   歯   火 」','(しるしを 数字に なおし、右から 左へ 読め)'],
   solved:['カチ、カチ、カチン ──','四つの 数字が そろい、錠前が ひらいた。','おくへの 道が、つうじた。'],
+}; }
+
+/* 光の 反射（劇場の おくの 鏡の 間）: 石像(鏡)を ぶつけて 回し、光を 紋章へ みちびく */
+function mirrorTempleCfg(){ return {
+  title:'かがみの 間', bg:null, win:'light',
+  intro:['ほこりを かぶった、鏡の ような 石像が ならぶ 間。','おくの かべに、ひかりを まつ 紋章。','光は、まっすぐ しか 進めない。','『石像を まわして、ひかりの 道を つなげ』',
+    '(石像に ぶつかると むきが かわる。\n 光源の ひかりを、紋章 ✦ に 当てよう)'],
+  hint:'石像に ぶつかると 回る。光を おりまげて 紋章へ。',
+  lockedMsg:'おくの 戸は、まだ ひらかない。\n紋章に、ひかりを 当てれば ひらく はず。',
+  solvedMsg:'紋章が まばゆく かがやき、おくの 戸が ひらいた!',
+  map:[
+    '###########',
+    '#>.../....#',
+    '#.........#',
+    '#@.../..E.#',
+    '#........D#',
+    '###########',
+  ],
+}; }
+
+/* 水位の 上げ下げ（しずくの 水門）: レバーで 水を 上げ下げ。低い道は 水位低で、深い水は 水位高で 渡れる */
+function waterGateCfg(){ return {
+  title:'みずもんの ろう', bg:'bg_water', win:'plates', startHigh:false,
+  intro:['ふるい 水門の ろう。','足もとには、低い 石の 道。\nおくは、ふかい 水の ほり。','『水を 上げれば 道は しずみ、ふかみは わたれる。','  水を 下げれば、ひくい 道が あらわれる』',
+    '(レバーで 水位を 上げ下げ。\n 低い道 ▦ と 深い水 ~ を つかい わけて 奥へ)'],
+  hint:'レバーで 水位を かえ、通れる 道を きりかえよう。',
+  map:[
+    '###########',
+    '#@wwww.~~D#',
+    '######V####',
+    '###########',
+  ],
 }; }
 
 /* 氷の床（ほらあな おく）: 石は すべり出すと 壁か べつの 石に 当たるまで 止まらない */
@@ -2068,6 +2218,26 @@ function buildStory(){
   BT('', 0); // そよ
   AF('', 0, ['そよは、かぜ ごと きえて しまった。','EXP が 入った。\nあたりの 風が、ぴたりと やんだ。'], ['そよは、まいあがって きえて いった。','かぜが、やさしく ほおを なでて いく。']);
   WK('', puzzleLampsCfg, 'ruins');   // 謎解き①: ともしびの 点灯順
+  WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏／観察ギミック
+    initGst:()=>({fluteFound:false}),
+    npcs:[
+      {x:150,y:300,label:'ふるい 燭台',lines:['ろうの たれた、ふるい 燭台。','ただ、しずかに 立って いる。','(……とくに、しかけは なさそうだ)']},
+      {x:480,y:310,label:'やぶれた 旗',lines:['色あせて、やぶれた 旗。','風も ないのに、かすかに ゆれた 気が した。','(……気のせい、だろうか)']},
+      {x:330,y:300,label:'壁画',lines:['かべに、おおきな 壁画。','うたう 人々と、ひとつの ふえ。','その下に、しらべが きざまれている ──','『ド ミ ソ ミ ド』','(うたう ものに、ふえを ──)']},
+    ],
+    gimmicks:[
+      {x:230,y:175,label:'口を あけた 石像',
+        use:(g)=>{ if(g.fluteFound||hasItem('flute')) return {lines:['石像は、しずかに 口を あけている。']};
+          g.fluteFound=true; addItem({key:'flute',label:'ほねの ふえ',desc:'石像の 口に あった ふえ。'});
+          return {se:'save', lines:['石像は、口を ぽかんと あけている。','その おくに 手を いれて みると ──','「ほねの ふえ」を 手に いれた!','(壁画の しらべを、奏でて みよう)']}; } },
+      {x:430,y:175,label:'ほこらの 扉', kind:'door',
+        onConfirm:()=>{ if(hasItem('flute')) startMusic({title:'うたう ほこら', bg:'bg_ruins', song:[0,2,4,2,0],
+            solved:['ふえの しらべが、ほこらに ひびいた。','ゴゴ ── 扉が、ゆっくり ひらいて いく。']});
+          else { se('cancel'); say(['かたく とじた、ほこらの 扉。','まんなかに、ふえの 形の くぼみ。','(ふえが あれば、奏でられそうだ)'],()=>{state=ST.WALK;clearPressed();},true); } } },
+    ],
+    saveAt:{x:95,y:200},
+    exitLocked:(g)=> '先へ つづく 道は、ほこらの 扉の おく。\n(壁画の しらべを、ふえで 奏でよう)',
+    exitText:''}, 'ruins');
   WK('まち跡の ろじうら', {title:'まち跡の ろじうら', bg:'bg_ruins',
     npcs:[{x:330,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']}],
     exitText:'みちの さきで、ねむそうな むしが\nまるく なって ねむって いる ──'}, 'ruins');
@@ -2138,6 +2308,7 @@ function buildStory(){
   FN('', eventEcho);              // 途中イベント: とびいしの こだま
   FN('', ()=>{ playTheme('water'); startPuzzle(keyDungeonCfg()); });   // ゼルダ風: 鍵と扉（古い 鍵を 入手）
   FN('', ()=>{ playTheme('water'); startPuzzle(iceCaveCfg()); });      // 氷の床すべり（しっかり歯ごたえ）
+  FN('', ()=>{ playTheme('water'); startPuzzle(waterGateCfg()); });    // 水位の 上げ下げ（名物）
   WK('しずくの わたり', {title:'しずくの わたり', bg:'bg_water',
     npcs:[{x:330,y:250,label:'とびいし',lines:['水を わたる、ならんだ とびいし。','ひとつ ひとつ、ふむ たびに\n 水の おとが、こだまする。','「ホー」── どこかで、こえが かえった。']}],
     exitText:'おくで、おなじ こえが なんども\nこだまして いる ──'}, 'water');
@@ -2169,6 +2340,7 @@ function buildStory(){
       {x:460,y:200,label:'とまった 大時計',lines:['大きな 時計。はりは、とまっている。','とびらが しまった、あの 日の\n 時こくの まま だ。','じかんは、ここで とまって いる。']},
     ], saveAt:{x:115,y:190}, exitText:'おくの 通路は、みだれた 歯車に ふさがれている ──'}, 'factory');
   FN('', ()=>{ playTheme('factory'); startPuzzle(sokobanFactoryCfg()); });   // 謎解き: 倉庫番
+  FN('', ()=>{ playTheme('factory'); startPuzzle(mirrorTempleCfg()); });     // 光の 反射（鏡を 回す）
   BT('', 9); // ネジ
   AF('', 9, ['ネジは、ぜんまいが きれて、とまった。','EXP が 入った。行進の 音が、やんだ。'], ['ネジは、ねじを まいて もらって あんしんし、\nきちんと 敬礼して 行進して いった。']);
   WK('ベルトコンベア', {title:'ベルトコンベア', bg:'bg_factory',
@@ -2340,7 +2512,7 @@ function drawWalk(){
 
 /* =======================  戦闘  ======================= */
 let enemies=[],eIndex=0,enemy=null;
-const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle',CODELOCK:'codelock',MEMORY:'memory'};
+const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle',CODELOCK:'codelock',MEMORY:'memory',MUSIC:'music'};
 let state=ST.TITLE;
 let menuIndex=0; const MENU=['たたかう','こうどう','どうぐ','みのがす'];
 let subType='',subIndex=0,subOptions=[];
@@ -2830,6 +3002,7 @@ function update(){
     case ST.PUZZLE: updatePuzzle(); break;
     case ST.CODELOCK: updateCodeLock(); break;
     case ST.MEMORY: updateMemory(); break;
+    case ST.MUSIC: updateMusic(); break;
     case ST.DIALOG:
       dialogTimer++;
       if(dialogShown<dialogText.length){ const vv=currentVoice();
@@ -2924,6 +3097,7 @@ function draw(){
     case ST.PUZZLE: drawPuzzle(); break;
     case ST.CODELOCK: drawCodeLock(); break;
     case ST.MEMORY: drawMemory(); break;
+    case ST.MUSIC: drawMusic(); break;
     case ST.ARGORCUT: drawArgorCut(); break;
     case ST.TUTORIAL: drawTutorial(); break;
     case ST.GAMEOVER: drawGameOver(); break;
