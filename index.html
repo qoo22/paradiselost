@@ -100,7 +100,7 @@
    ========================================================================= */
 
 /* ---- 画像 (外部ファイル img/<name>.png を参照) ---- */
-const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_smoke_cute","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","ending_group","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne"];
+const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_smoke_cute","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","ending_group","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne","intro_stair","intro_together","intro_door","intro_wait","intro_awaken","intro_path"];
 const IMG = {};
 for(const k of IMG_KEYS){ const im=new Image(); im.src="img/"+k+".png"; IMG[k]=im; }
 
@@ -1011,8 +1011,15 @@ function runSeq(){ const st=STORY[seqPos]; if(!st)return; if(st.label)curPlace=s
 let cut={img:null, pages:[], idx:0, after:null, choice:null, dark:0.55, sprite:null};
 function cutscene(img,pages,after,opt){
   // 1画面=最大2行に なるよう 各ページを 分割（カット枠 幅 W-80, 17px）
-  const flat=[]; for(const p of pages){ for(const q of paginate2(p, (W-80)-36, '23px "Courier New",monospace')) flat.push(q); }
-  cut.img=img; cut.pages=flat; cut.idx=0; cut.after=after||advance;
+  // 各ページは 文字列、または {img, text} で ページごとに 背景挿絵を 切り替えられる。
+  const flat=[], flatImg=[];
+  for(const p of pages){
+    const pt = (typeof p==='object') ? (p.text||'') : p;
+    const pi = (typeof p==='object' && p.img) ? p.img : img;
+    for(const q of paginate2(pt, (W-80)-36, '23px "Courier New",monospace')){ flat.push(q); flatImg.push(pi); }
+  }
+  cut.imgPer=flatImg; cut.imgBase=img;
+  cut.img=flatImg[0]||img; cut.pages=flat; cut.idx=0; cut.after=after||advance;
   cut.choice=(opt&&opt.choice)||null; cut.dark=(opt&&opt.dark!=null)?opt.dark:0.55;
   cut.sprite=(opt&&opt.sprite)||null;   // 中央に 立つ キャラ画像（任意）
   cut.fx=(opt&&opt.fx)||null;           // エンディング演出（'light'=昇る光 / 'ash'=降る灰）
@@ -1020,30 +1027,31 @@ function cutscene(img,pages,after,opt){
   state=ST.CUT; clearPressed();
 }
 let cutText='',cutShown=0;
-function loadPage(){ cutText=cut.pages[cut.idx]||''; cutShown=0; }
+function loadPage(){ cutText=cut.pages[cut.idx]||''; cutShown=0;
+  if(cut.imgPer && cut.imgPer[cut.idx]) cut.img=cut.imgPer[cut.idx]; }
 
 /* ---- 物語本文 ---- */
 function sceneIntro(){
   playTheme('title');
-  cutscene('title_bg',[
-    'むかし むかし。\nまだ 空が、まよなかでも あおかった ころ。',
-    '地上と 地下は、「ひかりの かいだん」で\nつながって いた。',
-    '地上に すむ ヒトと、\n地下に すむ 「おとぎ」 ── \nゆめから うまれ、わすれものから 形を もった\n もの たちは、ともに くらして いた。',
-    'おとぎたちは、ヒトの 見た ゆめを たべ、\nかわりに、よる くらやみが こわく ない ように、\nちいさな ともしびを ともして いた。',
-    'だが ── ヒトは ふえ、いそがしく なった。\nゆめを 見る よなかも、すくなく なった。',
-    'やがて ヒトは、じぶんたちと ちがう\nおとぎを 「気もちわるい」「あぶない」と\n うわさ するように なった。',
-    'ほんとうは、ただ ちがう だけ だった。\nだが 「ちがう」は、いつの まにか「こわい」に\n すりかわって いった。',
-    'ある よる、ヒトたちは かいだんの 入り口を\n「おそれの とびら」で とじた。\nとびらには、かたく とじた 目が きざまれた。',
-    '見なければ、こわく ない。\n知らなければ、いない のと おなじ。\nそうして ヒトは、おとぎを わすれた。',
-    'とびらの 内がわに のこされた おとぎたちは、\nやがて、なぜ こわがられたのかも わすれた。',
-    'ともしびを ともす あいてを なくし、\nただ しずかに、だれかが もどって くるのを\n まちつづけて いる。',
-    'そして ── 何百年か、すぎた。',
-    'これは、ある 一人の ヒトの 子どもが、\nその とびらの むこうがわへ\n おちて しまう、ちいさな ものがたり。',
+  cutscene('intro_stair',[
+    {img:'intro_stair',    text:'むかし むかし。\nまだ 空が、まよなかでも あおかった ころ。'},
+    {img:'intro_stair',    text:'地上と 地下は、「ひかりの かいだん」で\nつながって いた。'},
+    {img:'intro_together', text:'地上に すむ ヒトと、\n地下に すむ 「おとぎ」 ── \nゆめから うまれ、わすれものから 形を もった\n もの たちは、ともに くらして いた。'},
+    {img:'intro_together', text:'おとぎたちは、ヒトの 見た ゆめを たべ、\nかわりに、よる くらやみが こわく ない ように、\nちいさな ともしびを ともして いた。'},
+    {img:'intro_together', text:'だが ── ヒトは ふえ、いそがしく なった。\nゆめを 見る よなかも、すくなく なった。'},
+    {img:'intro_together', text:'やがて ヒトは、じぶんたちと ちがう\nおとぎを 「気もちわるい」「あぶない」と\n うわさ するように なった。'},
+    {img:'intro_together', text:'ほんとうは、ただ ちがう だけ だった。\nだが 「ちがう」は、いつの まにか「こわい」に\n すりかわって いった。'},
+    {img:'intro_door',     text:'ある よる、ヒトたちは かいだんの 入り口を\n「おそれの とびら」で とじた。\nとびらには、かたく とじた 目が きざまれた。'},
+    {img:'intro_door',     text:'見なければ、こわく ない。\n知らなければ、いない のと おなじ。\nそうして ヒトは、おとぎを わすれた。'},
+    {img:'intro_wait',     text:'とびらの 内がわに のこされた おとぎたちは、\nやがて、なぜ こわがられたのかも わすれた。'},
+    {img:'intro_wait',     text:'ともしびを ともす あいてを なくし、\nただ しずかに、だれかが もどって くるのを\n まちつづけて いる。'},
+    {img:'intro_wait',     text:'そして ── 何百年か、すぎた。'},
+    {img:'intro_stair',    text:'これは、ある 一人の ヒトの 子どもが、\nその とびらの むこうがわへ\n おちて しまう、ちいさな ものがたり。'},
   ], ()=>advance(), {dark:0.45});
 }
 function sceneAwaken(){
   playTheme('explore');
-  cutscene('title_bg',[
+  cutscene('intro_awaken',[
     '……いたい。\nつめたい 石の 上で、あなたは 目を さました。',
     'どうして こんな ところに?\n……そうだ。草むらの あなを のぞきこんで、\n あしを すべらせた んだった。',
     'はるか 頭上の あなから、\nほそい ひかりが ひとすじ、さしている。\nずいぶん、ふかく おちた らしい。',
@@ -1082,7 +1090,7 @@ function smokeChoice(){
 /* 落下地点から、最初の見張りへ ── 降りていく道 */
 function sceneDescent(){
   playTheme('explore');
-  cutscene('title_bg',[
+  cutscene('intro_path',[
     'あたたかい はなの みちを たどって、\nあなたは 地下の おくへと 歩きはじめた。',
     'かべには、ふるい ほりものが のこっている。\nヒトと おとぎが、てを つないで\n ともしびを かかげている 絵。',
     'その となりの 絵は ── けずられて いた。\nだれかが、見たく なくて、けずった みたいに。',
