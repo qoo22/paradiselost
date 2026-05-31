@@ -589,6 +589,13 @@ function saveGame(){
 }
 function clearSave(){ try{ localStorage.removeItem(SAVE_KEY); }catch(e){} }
 let titleSel=0;
+const TITLE_SUBS=[
+  '誰もが 物語の 主人公だった。',
+  'きみは 何を 壊し、何を 残す。',
+  '帰りたい 場所が ある。',
+];
+let titleSub=TITLE_SUBS[(Math.random()*TITLE_SUBS.length)|0];
+function rollTitleSub(){ titleSub=TITLE_SUBS[(Math.random()*TITLE_SUBS.length)|0]; }
 function titleOptions(){ return hasSave()? ['つづきから','さいしょから'] : ['はじめる']; }
 function loadGame(){
   const d=readSave(); if(!d) return false;
@@ -1388,7 +1395,7 @@ function endNeutral(k,s,kakutoSpared){
     'すべてを たすける みちも、ここには ある。\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.4, fx:(kakutoSpared?'light':'ash')});
 }
-function backToTitle(){ state=ST.TITLE; playTheme('title'); clearPressed(); }
+function backToTitle(){ state=ST.TITLE; rollTitleSub(); playTheme('title'); clearPressed(); }
 
 /* =======================  ストーリー構築（4地方・全12戦）  ======================= */
 function smokeStage(n){
@@ -2456,7 +2463,7 @@ function drawTitle(){
   drawImgCover(IMG.title_bg,0.55);
   txt('やさしい失楽園',W/2,118,46,'#fff','center');
   txt('THE  GENTLE  PARADISE  LOST',W/2,176,15,'#888','center');
-  txt('だれも たおさなくて いい RPG。',W/2,236,18,'#ccc','center');
+  txt(titleSub,W/2,236,18,'#ccc','center');
   txt('あいての HP では なく、こころを みる。',W/2,264,15,'#888','center');
   // メニュー（つづきから / さいしょから）
   const opts=titleOptions(); if(titleSel>=opts.length)titleSel=0;
