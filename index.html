@@ -55,19 +55,17 @@
     canvas{ max-width:100vw; max-height:68vh; border:none; }
     #fsbtn{ display:flex; }
   }
-  /* 横向きスマホ: 左に トラックパッドの 領域を 確保し、キャンバスは その 右側に 少し 小さく 配置。
-     こうすると トラックパッドと 画面が 重ならない。 */
+  /* 横向きスマホ: ゲーム画面は つねに 画面中央。中央配置で できる 左右の 余白の うち、
+     左下に トラックパッドを 置く。画面は その 余白に 収まる 大きさ(58vw)に して 重ならない ように する。 */
   @media (pointer:coarse) and (orientation:landscape){
-    #wrap{ flex-direction:row; justify-content:center; align-items:center; gap:0; box-sizing:border-box;
-      padding:6px 10px 6px calc(env(safe-area-inset-left, 0px) + 248px); }   /* 左に トラックパッドぶん 余白 */
-    canvas{ max-width:100%; max-height:92vh; border:none; }                   /* 余白の 右で 少し 小さく */
-    /* 左下に 配置。ノッチ/ホームバー(safe-area)を よけ、角に 寄せすぎない よう 少し 内側へ。 */
+    #wrap{ flex-direction:row; justify-content:center; align-items:center; padding:0; gap:0; }
+    canvas{ max-width:58vw; max-height:96vh; border:none; }   /* 中央・左右に 余白(各約21vw) */
+    /* 左下（ノッチは 横画面では 辺の 中央なので、下端なら かからない。ホームバーは safe-area で よける）。 */
     #pad{ position:fixed; top:auto; transform:none; width:auto; padding:0;
-      left:calc(env(safe-area-inset-left, 0px) + 12px);
-      bottom:calc(env(safe-area-inset-bottom, 0px) + 12px); }
-    #tp{ width:min(34vw, 232px); height:calc(min(34vw, 232px) * 135 / 220); }  /* 確保した 領域に 収まる 大きさ */
-    .tpk{ font-size:16px; } .tpk-c{ font-size:12px; }
-    .tpc{ min-width:52px; font-size:12px; height:28px; }
+      left:16px; bottom:calc(env(safe-area-inset-bottom, 0px) + 10px); }
+    #tp{ width:min(17vw, 195px); height:calc(min(17vw, 195px) * 135 / 220); }  /* 左余白に 収まる 大きさ */
+    .tpk{ font-size:14px; } .tpk-c{ font-size:10px; }
+    .tpc{ min-width:46px; font-size:11px; height:26px; }
   }
 </style>
 </head>
