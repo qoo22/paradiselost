@@ -1617,6 +1617,292 @@ function afterHomura(){
     '「それでも いいの。あなたが、\n  しあわせなら ── それで」',
     'ともしびの あかりが、きみの 行く さきを\n やわらかく てらして いる。'],()=>advance(),{dark:0.4,sprite:'char_homura'}); }
 }
+/* =======================  途中の 謎解き・イベント（マンネリ防止）  ======================= */
+/* 謎解き①: ともしびを「ちいさい火 → 大きい火」の 順で ともす（まち跡）*/
+function lampUse(g, self){
+  if(g.solved) return {lines:['すべての ともしびが、しずかに ゆれている。']};
+  if(g.lit.includes(self.gid)) return {lines:['この ともしびは、もう ともって いる。']};
+  const need=g.lit.length+1;                 // 期待される 火の おおきさ（1→2→3）
+  if(self.size===need){ g.lit.push(self.gid);
+    if(g.lit.length>=3){ g.solved=true;
+      return {se:'save', lines:['ちいさな 火から、大きな 火へ ──','みっつの ともしびが、つぎつぎ ともった。','やみが はれ、おくへの みちが うかびあがる。','(わすれられた ともしびが、ひとつ よみがえった)']}; }
+    return {se:'heal', lines:['ぽっ、と ちいさく ともしびが ともった。']};
+  }
+  g.lit=[]; return {se:'cancel', lines:['ともしびは ついた かと おもうと、','ふっと、ぜんぶ きえて しまった。','……ともす 順番が、ちがった みたいだ。']};
+}
+function puzzleLampsCfg(){ return {
+  title:'ともしびの ならび', bg:'bg_ruins', startX:60, startY:240,
+  initGst:()=>({lit:[], solved:false}),
+  npcs:[{x:330,y:165,label:'いわの ほりもの',
+    lines:['いわに、ふるい ことばが きざまれている。','『ねむる 子らに 火を ともす ときは ──','  いちばん ちいさな 火から、','  いちばん 大きな 火へ、じゅんに』']}],
+  gimmicks:[
+    {x:200,y:320,label:'ちいさな 火', kind:'lamp', gid:1, size:1, isOn:(g)=>g.lit.includes(1), use:lampUse},
+    {x:330,y:330,label:'なかくらいの 火', kind:'lamp', gid:2, size:2, isOn:(g)=>g.lit.includes(2), use:lampUse},
+    {x:460,y:320,label:'おおきな 火', kind:'lamp', gid:3, size:3, isOn:(g)=>g.lit.includes(3), use:lampUse},
+  ],
+  saveAt:{x:110,y:185},
+  exitLocked:(g)=> g.solved? null : 'みちの さきは、ふかい やみに とざされている。\nともしびを 正しい 順で ともせば、\nひかりが みちを てらす はず。\n(いわの ほりものを 読んで みよう)',
+  exitText:'よみがえった ともしびに みちびかれ、\nあなたは おくへ すすんだ。',
+}; }
+
+/* 謎解き②: となりも 連動する 歯車を ぜんぶ そろえる（こうじょう）*/
+function gearUse(g, self){
+  if(g.gears.every(v=>v)) return {lines:['すべて、きちんと かみあって いる。']};
+  const sets={0:[0,1],1:[0,1,2],2:[1,2]};    // 押すと 自分＋となりが 回る
+  for(const i of sets[self.gi]) g.gears[i]=!g.gears[i];
+  if(g.gears.every(v=>v)) return {se:'save', lines:['ガチ、ガチ、ガチン ──','すべての 歯車が、ぴたりと かみあった。','(おくへの 戸が、ゆっくり ひらいた)']};
+  return {se:'confirm', lines:['ギ、ギ ── 歯車が まわり、となりも 動いた。']};
+}
+function gearPuzzleCfg(){ return {
+  title:'かみあわぬ 歯車', bg:'bg_factory', startX:60, startY:240,
+  initGst:()=>({gears:[false,true,false]}),
+  npcs:[{x:330,y:160,label:'よごれた はり紙',
+    lines:['よごれた はり紙。','『歯車は、となりと かみあう。','  ひとつ まわせば、となりも まわる』','『はしの 歯車から、ととのえよ。','  まんなかは、すべてを 乱す』']}],
+  gimmicks:[
+    {x:200,y:305,label:'左の 歯車', kind:'gear', gi:0, isOn:(g)=>g.gears[0], use:gearUse},
+    {x:330,y:305,label:'中の 歯車', kind:'gear', gi:1, isOn:(g)=>g.gears[1], use:gearUse},
+    {x:460,y:305,label:'右の 歯車', kind:'gear', gi:2, isOn:(g)=>g.gears[2], use:gearUse},
+  ],
+  saveAt:{x:110,y:185},
+  exitLocked:(g)=> g.gears.every(v=>v)? null : 'おくへの 戸は、歯車で かたく とざされている。\nすべての 歯車が きちんと かみあえば、ひらく はず。\n(はしの 歯車から ためして みよう)',
+  exitText:'かみあった 歯車の おくから ──\nぜんまいじかけの 兵が、行進して きた ──',
+}; }
+
+/* ミニ演出: まっくらな みずみち。ほのかな ひかりを たよりに ともしびを さがす（ほらあな）*/
+function darkCaveCfg(){ return {
+  title:'くらやみの みずみち', bg:'bg_water', darkness:true, startX:55, startY:240,
+  initGst:()=>({lit:false}),
+  gimmicks:[
+    {x:525,y:165,label:'大きな ともしび', kind:'lamp', beacon:true, isOn:(g)=>g.lit,
+      use:(g)=>{ if(g.lit) return {lines:['ともしびが、あたりを やさしく てらして いる。']};
+        g.lit=true; return {se:'save', lines:['手さぐりで たどりついた ともしびに、火を ともした。','ぱあっ ── みずみちが、ひかりに 満ちる。','水面に うつる じぶんの 顔は、','すこし、ほっと して いた。']}; }},
+  ],
+  npcs:[{x:200,y:345,label:'ぬれた 道しるべ',
+    lines:['くらやみの 中、手に ふれた 道しるべ。','『あわてるな。','  ひかりは、いつも おくに ある』']}],
+  saveAt:{x:90,y:340},
+  exitLocked:(g)=> g.lit? null : 'まっくらで、みちの さきが 見えない。\n(おくの ほうに、ほのかな ひかりが ある。\n それを たよりに、すすんで みよう)',
+  exitText:'ともしびを 手に、あなたは おくへ すすんだ。',
+}; }
+
+/* 途中イベント: 迷子の こだまの 子（劇場街・選択で 結果が 変わる）*/
+function eventLostChild(){
+  playTheme('theater');
+  cutscene('title_bg',[
+    'つうろの すみで、ちいさな こだまの 子が、\nひざを かかえて うずくまって いる。',
+    '「……かえり みち、わからなく なっちゃった。\n  みんなの こえ、もう きこえない……」',
+  ], ()=>{}, { dark:0.5, choice:{ q:'どう する?', sel:0, opts:[
+    { label:'いっしょに さがす', after:()=>{ flags.helpedKodama=true; playTheme('explore'); cutscene('title_bg',[
+        'あなたは 子の 手を にぎり、\nつうろを ひとつ ずつ、こえを たどって あるいた。',
+        'やがて とおくで、「ここだよ!」と、\nたくさんの こだまが かえって きた。',
+        '子は ぱっと かけだし、ふりかえって 手を ふった。\n「ありがとう! きみの こえ、わすれない!」',
+        'みちばたに、ともしびが ひとつ ともった。\n(やさしさは、ちゃんと どこかに とどく)',
+      ], ()=>advance(), {dark:0.45}); } },
+    { label:'先を いそぐ', after:()=>{ playTheme('explore'); cutscene('title_bg',[
+        'あなたは、先を いそいだ。\n子の すすり泣きが、うしろで ちいさく なって いく。',
+        '……あとで、むかえに きて あげられる だろうか。\nむねの すみが、ほんの すこし、つめたい。',
+      ], ()=>advance(), {dark:0.5}); } },
+  ]}});
+}
+
+/* 途中イベント: とびいしの こだまに 声を かえす?（ほらあな・選択）*/
+function eventEcho(){
+  playTheme('water');
+  cutscene('bg_water',[
+    'みずうみの ほとりに、ならんだ とびいし。\nわたろうと すると ── どこからか、',
+    '「……ホー」と、さびしい こえが かえって きた。\nだれかが、ずっと 返事を まって いる みたいだ。',
+  ], ()=>{}, { dark:0.4, choice:{ q:'どう する?', sel:0, opts:[
+    { label:'声を かえす', after:()=>{ flags.echoBack=true; cutscene('bg_water',[
+        'あなたは おもいきり、「ホーイ!」と かえした。',
+        'すると こだまは うれしそうに、なんども\n「ホーイ! ホーイ!」と はずんで かえって きた。',
+        'くらかった ほらあなが こえで みたされ、\nすこし、あたたかく なった ように 感じた。',
+        '水面に、ともしびが ひとつ うつって ゆれた。',
+      ], ()=>advance(), {dark:0.35}); } },
+    { label:'だまって わたる', after:()=>{ cutscene('bg_water',[
+        'あなたは こえを かえさず、\nそっと とびいしを わたって いった。',
+        'うしろで、「……ホー」と、\nこえが ひとつ、しずかに きえて いった。',
+      ], ()=>advance(), {dark:0.45}); } },
+  ]}});
+}
+
+/* =======================  アイテム / 鍵 システム  ======================= */
+let inventory=[];                              // [{key,label,desc}]
+function hasItem(k){ return inventory.some(it=>it.key===k); }
+function addItem(it){ if(!hasItem(it.key)) inventory.push(it); }
+function drawInventory(){
+  if(!inventory.length) return;
+  const x=W-150, y=120; ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(x-8,y-18,150,18+inventory.length*20);
+  ctx.strokeStyle='#555'; ctx.lineWidth=1; ctx.strokeRect(x-8,y-18,150,18+inventory.length*20);
+  txt('もちもの',x+62,y-4,12,'#999','center');
+  inventory.forEach((it,i)=>{ const yy=y+14+i*20; drawKeyIcon(x+6,yy-4,0.7); txt(it.label,x+18,yy,13,'#dd9','left'); });
+}
+function drawKeyIcon(cx,cy,s){ s=s||1; ctx.save(); ctx.translate(cx,cy); ctx.scale(s,s);
+  ctx.strokeStyle='#e8c45a'; ctx.fillStyle='#e8c45a'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.arc(-5,0,4,0,7); ctx.stroke();                 // 持ち手
+  ctx.beginPath(); ctx.moveTo(-1,0); ctx.lineTo(8,0); ctx.stroke();   // 軸
+  ctx.beginPath(); ctx.moveTo(8,0); ctx.lineTo(8,4); ctx.moveTo(5,0); ctx.lineTo(5,3); ctx.stroke(); // 歯
+  ctx.restore();
+}
+
+/* =======================  グリッド謎解き（倉庫番・鍵と扉）  =======================
+   ASCIIマップ記号:  '#'壁  '.'床  '@'開始  'O'石  '*'スイッチ  '+'石が乗ったスイッチ
+                     'K'鍵  'D'扉(出口)  ' 'なにもない(進入不可)
+   cfg: { title, bg, theme, map:[...rows], win:'plates'|'key'|'both', needKey, keyItem,
+          hint, intro:[...], lockedMsg, solvedMsg, after } */
+let puzzle=null; const PUZ_T=44, PUZ_OX=72, PUZ_OY=150;
+function tileCX(i){ return PUZ_OX+i*PUZ_T+PUZ_T/2; }
+function tileCY(j){ return PUZ_OY+j*PUZ_T+PUZ_T/2; }
+function gatesOpen(P){ return P.plates.length>0 && P.plates.every(p=>P.blocks.some(b=>b.i===p.i&&b.j===p.j)); }
+function buildPuzzleState(cfg){
+  const P={ cfg, walls:new Set(), floor:new Set(), plates:[], blocks:[], items:[], gates:[], door:null,
+            gx:0,gy:0, moveCD:0, opened:false, msg:'', msgT:0, after:cfg.after||advance };
+  cfg.map.forEach((r,j)=>{ for(let i=0;i<r.length;i++){ const ch=r[i], k=i+','+j;
+    if(ch==='#'){ P.walls.add(k); }
+    else if(ch===' '){ /* void */ }
+    else { P.floor.add(k); }                         // それ以外は すべて 床
+    if(ch==='@'){ P.gx=i; P.gy=j; }
+    else if(ch==='O'){ P.blocks.push({i,j}); }
+    else if(ch==='*'){ P.plates.push({i,j}); }
+    else if(ch==='+'){ P.plates.push({i,j}); P.blocks.push({i,j}); }
+    else if(ch==='G'){ P.gates.push({i,j}); }        // スイッチで ひらく 石戸
+    else if(ch==='D'){ P.door={i,j}; }
+    else if(ch==='K'){ P.items.push({i,j,item:cfg.keyItem||{key:'oldkey',label:'古い 鍵',desc:'どこかの とびらを ひらく 鍵。'}}); }
+  }});
+  if(puzzleSolved(P)) P.opened=true;                 // 鍵を 既に 持って いれば 扉は 開いた ままに
+  return P;
+}
+function startPuzzle(cfg){
+  puzzle=buildPuzzleState(cfg); state=ST.PUZZLE; clearPressed();
+  roomBanner=cfg.title||''; roomBannerT=160;
+  if(cfg.intro&&cfg.intro.length){ state=ST.CUT;     // 導入セリフ → パズル開始
+    cutscene(cfg.bg||'title_bg', cfg.intro, ()=>{ state=ST.PUZZLE; clearPressed(); }, {dark:0.55});
+  }
+}
+function puzzleSolved(P){
+  const platesOK = P.plates.length? P.plates.every(p=>P.blocks.some(b=>b.i===p.i&&b.j===p.j)) : true;
+  const keyOK = (P.cfg.win==='key'||P.cfg.win==='both')? hasItem(P.cfg.needKey||'oldkey') : true;
+  if(P.cfg.win==='key') return keyOK;
+  if(P.cfg.win==='both') return platesOK&&keyOK;
+  return platesOK;                                   // 既定: 'plates'
+}
+function pMsg(P,t){ P.msg=t; P.msgT=150; }
+function updatePuzzle(){
+  const P=puzzle; if(!P)return; if(P.msgT>0)P.msgT--;
+  if(consume('cancel')){ se('cancel'); puzzle=buildPuzzleState(P.cfg); pMsg(puzzle,'石を もとに もどした。'); return; }
+  if(P.moveCD>0){P.moveCD--; return;}
+  let di=0,dj=0;
+  if(keys.left)di=-1; else if(keys.right)di=1; else if(keys.up)dj=-1; else if(keys.down)dj=1;
+  if(!di&&!dj) return;
+  const ni=P.gx+di, nj=P.gy+dj, nk=ni+','+nj;
+  const gateShut = P.gates.some(g=>g.i===ni&&g.j===nj) && !gatesOpen(P);
+  const onFloor = P.floor.has(nk)&&!P.walls.has(nk)&&!gateShut;
+  if(!onFloor){ se('cancel'); P.moveCD=6; return; }
+  const b=P.blocks.find(x=>x.i===ni&&x.j===nj);
+  if(b){                                             // 石を 押す
+    const bi=ni+di,bj=nj+dj,bk=bi+','+bj;
+    const canPush=P.floor.has(bk)&&!P.walls.has(bk)&&!P.blocks.some(x=>x.i===bi&&x.j===bj)&&!P.gates.some(g=>g.i===bi&&g.j===bj)&&!(P.door&&P.door.i===bi&&P.door.j===bj);
+    if(canPush){ b.i=bi;b.j=bj; P.gx=ni;P.gy=nj; P.moveCD=9;
+      const onPlate=P.plates.some(p=>p.i===bi&&p.j===bj); se(onPlate?'heal':'confirm');
+      checkOpen(P);
+    } else { se('cancel'); P.moveCD=8; }
+    return;
+  }
+  // 扉
+  if(P.door&&P.door.i===ni&&P.door.j===nj){
+    if(P.opened){ const af=P.after; puzzle=null; af&&af(); return; }
+    se('cancel'); pMsg(P, P.cfg.lockedMsg||'とびらは、かたく とじている。'); P.moveCD=8; return;
+  }
+  // 移動
+  P.gx=ni;P.gy=nj; P.moveCD=6;
+  const it=P.items.find(t=>t.i===ni&&t.j===nj&&!t.got);
+  if(it){ it.got=true; addItem(it.item); se('save'); pMsg(P, it.item.label+'を 手に いれた!'); checkOpen(P); }
+}
+function checkOpen(P){ if(!P.opened&&puzzleSolved(P)){ P.opened=true; se('save'); pMsg(P, P.cfg.solvedMsg||'カチリ ── とびらの かぎが あいた。'); } }
+function drawPuzzle(){
+  const P=puzzle; if(!P)return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(P.cfg.bg&&IMG[P.cfg.bg]) drawImgCover(IMG[P.cfg.bg],0.86);
+  P.floor.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
+    ctx.fillStyle='#151515'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#272727'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,PUZ_T-2,PUZ_T-2); });
+  P.walls.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
+    ctx.fillStyle='#3b3b3b'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.fillStyle='#4d4d4d'; ctx.fillRect(x+1,y+1,PUZ_T-2,5); });
+  { const gopen=gatesOpen(P); for(const g of P.gates){ const x=PUZ_OX+g.i*PUZ_T,y=PUZ_OY+g.j*PUZ_T;
+    if(gopen){ ctx.strokeStyle='#3a6a44'; ctx.lineWidth=1; ctx.strokeRect(x+4,y+4,PUZ_T-8,PUZ_T-8); }
+    else { ctx.fillStyle='#2a2a34'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2);
+      ctx.strokeStyle='#8890b8'; ctx.lineWidth=2; for(let bx=x+9;bx<x+PUZ_T-5;bx+=8){ ctx.beginPath(); ctx.moveTo(bx,y+5); ctx.lineTo(bx,y+PUZ_T-5); ctx.stroke(); } } } }
+  for(const p of P.plates){ const cx=tileCX(p.i),cy=tileCY(p.j),covered=P.blocks.some(b=>b.i===p.i&&b.j===p.j);
+    ctx.strokeStyle=covered?'#fc3':'#7a7a7a'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cx,cy,12,0,7); ctx.stroke(); ctx.beginPath(); ctx.arc(cx,cy,4,0,7); ctx.stroke(); }
+  for(const it of P.items){ if(it.got)continue; const fl=Math.sin(Date.now()*0.008)*2; drawKeyIcon(tileCX(it.i),tileCY(it.j)+fl,1.4); }
+  for(const b of P.blocks){ const x=PUZ_OX+b.i*PUZ_T,y=PUZ_OY+b.j*PUZ_T,onP=P.plates.some(p=>p.i===b.i&&p.j===b.j);
+    ctx.fillStyle=onP?'#8a7a3a':'#6f6f6f'; ctx.fillRect(x+5,y+5,PUZ_T-10,PUZ_T-10);
+    ctx.strokeStyle=onP?'#fc3':'#bbb'; ctx.lineWidth=2; ctx.strokeRect(x+5,y+5,PUZ_T-10,PUZ_T-10);
+    ctx.beginPath(); ctx.moveTo(x+9,y+9); ctx.lineTo(x+PUZ_T-9,y+PUZ_T-9); ctx.moveTo(x+PUZ_T-9,y+9); ctx.lineTo(x+9,y+PUZ_T-9); ctx.stroke(); }
+  if(P.door){ const x=PUZ_OX+P.door.i*PUZ_T,y=PUZ_OY+P.door.j*PUZ_T;
+    ctx.fillStyle=P.opened?'#1d3a24':'#3a1d1d'; ctx.fillRect(x+2,y+2,PUZ_T-4,PUZ_T-4);
+    ctx.strokeStyle=P.opened?'#6f6':'#d66'; ctx.lineWidth=2; ctx.strokeRect(x+2,y+2,PUZ_T-4,PUZ_T-4);
+    if(!P.opened) drawKeyIcon(tileCX(P.door.i),tileCY(P.door.j),0.9);
+    else txt('▶',tileCX(P.door.i),tileCY(P.door.j)+6,18,'#6f6','center'); }
+  const bob=Math.sin(Date.now()*0.006)*2; drawHeart(tileCX(P.gx),tileCY(P.gy)+bob,'#f00',8);
+  if(roomBannerT>0){roomBannerT--; ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,52,24,'#fff','center'); ctx.globalAlpha=1;}
+  if(P.cfg.hint) txt(P.cfg.hint,W/2,H-44,14,'#9a9a9a','center');
+  txt(IS_TOUCH?'十字キーで おす ・ もどるで やりなおし':'↑↓←→ おす   X やりなおし',W/2,H-22,13,'#777','center');
+  if(P.msgT>0){ ctx.globalAlpha=Math.min(1,P.msgT/30); txt(P.msg,W/2,112,17,'#ff3','center'); ctx.globalAlpha=1; }
+  drawInventory();
+}
+
+/* 倉庫番（こうじょう）: 部品の 石を ぜんぶ みぞ(スイッチ)へ */
+function sokobanFactoryCfg(){ return {
+  title:'ぶひんの みぞ', bg:'bg_factory', win:'plates',
+  intro:['ベルトコンベアの おくに、ひろい 作業場。','床に、はまるべき みぞが いくつか あいている。','『ぶひんは、あるべき みぞへ。','  ひとつでも ずれれば、戸は あかぬ』',
+    'ガチャン ── おもい 戸が、ゆくてを ふさいだ。\n(おもい 部品の 石を、みぞへ 押しこもう)'],
+  hint:'石は 押す ことしか できない。先を 読んで うごこう。',
+  lockedMsg:'戸は、びくとも しない。\nすべての 石を、みぞに はめれば ひらく はず。',
+  solvedMsg:'ガコン ── すべての みぞが はまり、戸が ひらいた!',
+  map:[
+    '###########',
+    '#@.O....*.#',
+    '#..O....*.#',
+    '#..O....*.#',
+    '#........D#',
+    '###########',
+  ],
+}; }
+
+/* ゼルダ風（ほらあな）: 石で 内なる みぞを 押さえ、奥の 鍵を とり、鍵の 扉を あける */
+function keyDungeonCfg(){ return {
+  title:'みずろうの かぎ', bg:'bg_water', win:'key', needKey:'oldkey',
+  keyItem:{key:'oldkey',label:'古い 鍵',desc:'こけむした、ふるい 鉄の 鍵。\nどこか おくの とびらを ひらく ようだ。'},
+  intro:['水の したたる、ふるい 石の ろう。','おくに、鍵の かかった とびら。','そして 石戸の むこうに、ひかる ひとつの 鍵。','『みぞを 石で みたせば、石戸が さがる』',
+    '(石を みぞ ○へ 押しこむと 石戸 ▮ が ひらく。\n 奥の 鍵を とって、扉を あけよう)'],
+  hint:'石を みぞへ → 石戸が さがる → 鍵 → 扉。',
+  lockedMsg:'鉄の とびらは、かたく とじている。\n古い 鍵が あれば、ひらく かもしれない。',
+  solvedMsg:'ガチャ ── 古い 鍵が、扉の かぎを あけた!',
+  map:[
+    '###########',
+    '#.@.#..K..#',
+    '#.O.G.....#',
+    '#...#.....#',
+    '#.*.#....D#',
+    '###########',
+  ],
+}; }
+
+/* 隠し部屋: 古い 鍵で あく 小とびら → これまで ともした 火が あつまる へや */
+function hiddenRoomScene(){
+  flags.foundHidden=true; playTheme('explore');
+  cutscene('save_flame',[
+    '小とびらの おくは、ちいさな へや だった。',
+    'たなには、あなたが 地下で ともして きた\nともしびの ひかりが、ひとつ ずつ ならんで いる。',
+    '消えかけて いた 火が、ここで そっと\nまもられて いた みたいに、あたたかい。',
+    'かべに、ちいさな 文字。\n『見つけて くれて、ありがとう。',
+    '  きみが だれかを 思った その ぶん だけ、\n  この へやは、あかるく なる』',
+    'いちばん おくに、ちいさな ともしびが ひとつ。\nそっと 手に とると、こころが ほどけて いく。',
+    '(かくしの ともしびを 見つけた。\n HPが 全回復し、お守りに なった)',
+  ], ()=>{ player.hp=player.maxhp;
+    addItem({key:'memori',label:'ちいさな ともしび',desc:'隠しべやで 見つけた お守り。'});
+    state=ST.WALK; clearPressed(); }, {dark:0.3, fx:'light'});
+}
+
 function buildStory(){
   STORY=[];
   const C=(label,img,pages,dark,theme)=>STORY.push({label,run:()=>{ if(theme)playTheme(theme); cutscene(img,(typeof pages==='function'?pages():pages),advance,{dark:dark==null?0.5:dark}); }});
@@ -1659,6 +1945,7 @@ function buildStory(){
     ], saveAt:{x:110,y:200}, exitText:'みちの さきで、そよ風が ふわりと 形を むすんだ ──'}, 'ruins');
   BT('', 0); // そよ
   AF('', 0, ['そよは、かぜ ごと きえて しまった。','EXP が 入った。\nあたりの 風が、ぴたりと やんだ。'], ['そよは、まいあがって きえて いった。','かぜが、やさしく ほおを なでて いく。']);
+  WK('', puzzleLampsCfg, 'ruins');   // 謎解き①: ともしびの 点灯順
   WK('まち跡の ろじうら', {title:'まち跡の ろじうら', bg:'bg_ruins',
     npcs:[{x:330,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']}],
     exitText:'みちの さきで、ねむそうな むしが\nまるく なって ねむって いる ──'}, 'ruins');
@@ -1690,6 +1977,7 @@ function buildStory(){
     ], saveAt:{x:115,y:200}, exitText:'あまだれの 中、一本足の かさこぞうが はねて きた ──'}, 'theater');
   BT('', 3); // カサ
   AF('', 3, ['カサは、しゅんと しぼんで きえた。','EXP が 入った。あまだれの 音が、やんだ。'], ['カサは、あまの むこうへ はねて いった。','かさの 下は、すこし あたたかかった。']);
+  FN('', eventLostChild);   // 途中イベント: 迷子の こだまの 子
   WK('はいごの つうろ', {title:'はいごの つうろ', bg:null,
     npcs:[{x:330,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']}],
     exitText:'おくから、ぱちぱちと はくしゅの 音が\nきこえて くる ──'}, 'theater');
@@ -1722,6 +2010,9 @@ function buildStory(){
     ], saveAt:{x:115,y:190}, exitText:'水面から、しずかな せいが うかびあがった ──'}, 'water');
   BT('', 6); // シズク
   AF('', 6, ['シズクは、にごった まま はじけて きえた。','EXP が 入った。水面が、くらく しずまる。'], ['シズクの 水面は すきとおり、\nおだやかな あなたが うつって いた。']);
+  WK('', darkCaveCfg, 'water');   // ミニ演出: くらやみの みずみち
+  FN('', eventEcho);              // 途中イベント: とびいしの こだま
+  FN('', ()=>{ playTheme('water'); startPuzzle(keyDungeonCfg()); });   // ゼルダ風: 鍵と扉（古い 鍵を 入手）
   WK('しずくの わたり', {title:'しずくの わたり', bg:'bg_water',
     npcs:[{x:330,y:250,label:'とびいし',lines:['水を わたる、ならんだ とびいし。','ひとつ ひとつ、ふむ たびに\n 水の おとが、こだまする。','「ホー」── どこかで、こえが かえった。']}],
     exitText:'おくで、おなじ こえが なんども\nこだまして いる ──'}, 'water');
@@ -1751,7 +2042,8 @@ function buildStory(){
     npcs:[
       {x:200,y:300,label:'けいじばん',lines:['きちんと した けいじばん。','『一、みだれを ゆるすな。\n  二、おそれを 入れるな。\n  三、すべてを、きちんと たもて』','番人 カクトの、おきて らしい。']},
       {x:460,y:200,label:'とまった 大時計',lines:['大きな 時計。はりは、とまっている。','とびらが しまった、あの 日の\n 時こくの まま だ。','じかんは、ここで とまって いる。']},
-    ], saveAt:{x:115,y:190}, exitText:'歯車の あいだから、ぜんまいじかけの 兵が 行進して きた ──'}, 'factory');
+    ], saveAt:{x:115,y:190}, exitText:'おくの 通路は、みだれた 歯車に ふさがれている ──'}, 'factory');
+  FN('', ()=>{ playTheme('factory'); startPuzzle(sokobanFactoryCfg()); });   // 謎解き: 倉庫番
   BT('', 9); // ネジ
   AF('', 9, ['ネジは、ぜんまいが きれて、とまった。','EXP が 入った。行進の 音が、やんだ。'], ['ネジは、ねじを まいて もらって あんしんし、\nきちんと 敬礼して 行進して いった。']);
   WK('ベルトコンベア', {title:'ベルトコンベア', bg:'bg_factory',
@@ -1772,9 +2064,17 @@ function buildStory(){
     'おそれの とびらが、ゆっくりと ひらいて いく。\nその むこうに ── ひろい 玉座の間が 見えた。',
   ], 0.45, 'argor_sad');
   WK('玉座の間の てまえ', {title:'玉座の間の てまえ', bg:'bg_throne',
+    initGst:()=>({hiddenDone:false}),
     npcs:[
       {x:200,y:300,label:'ふるい かべ画',lines:['玉座の間の かべに、大きな かべ画。','わかい 王が、たくさんの おとぎたちと、\n わらって いる 絵。','いまの 王の、さびしい 立ち姿とは、\n まるで べつの 人 みたいだ。']},
-      {x:460,y:200,label:'おちた 王冠の あと',lines:['ゆかに、王冠の 形に やけた あと。','なんども、王冠を おろしては、\n また かぶり なおした あと だろうか。','王で いる ことは、おもい のかも しれない。']},
+      {x:460,y:300,label:'おちた 王冠の あと',lines:['ゆかに、王冠の 形に やけた あと。','なんども、王冠を おろしては、\n また かぶり なおした あと だろうか。','王で いる ことは、おもい のかも しれない。']},
+    ],
+    gimmicks:[
+      {x:330,y:175,label:'ふるい 小とびら', kind:'door',
+        use:(g)=>{ if(g.hiddenDone) return {lines:['小とびらの おくは、しずかに 光って いる。']};
+          if(hasItem('oldkey')){ g.hiddenDone=true; return {se:'save',
+            lines:['小とびらに、鍵あなが ある。','もって いた 古い 鍵を さしこむと ──','カチリ。とびらが、すっと ひらいた。'], then:()=>hiddenRoomScene()}; }
+          return {se:'cancel', lines:['ふるい 小とびら。鍵あなが ついている。','(どこかで 手に いれた 鍵が あれば、\n  ひらく かもしれない)']}; } },
     ],
     saveAt:{x:120,y:200},
     exitText:'おくの 玉座に、大きな かげが 立っている。\nここから さきは ── もう、もどれない。\n（ともしびで ほぞん して おこう）'}, 'argor_sad');
@@ -1787,8 +2087,9 @@ function buildStory(){
 /* =======================  探索（ウォーク）ルーム  ======================= */
 const room={cfg:null, px:60, py:240, anim:0, near:null};
 function makeWalkRoom(cfg){
-  room.cfg=cfg; room.px=60; room.py=240; room.anim=0; room.near=null;
+  room.cfg=cfg; room.px=(cfg.startX||60); room.py=(cfg.startY||240); room.anim=0; room.near=null;
   room.saved=false;
+  room.gst = cfg.initGst ? cfg.initGst() : {};   // ギミック／謎解きの 状態
   state=ST.WALK; clearPressed();
   // ルームに入った時のタイトル表示
   roomBanner=cfg.title||''; roomBannerT=160;
@@ -1804,6 +2105,7 @@ function updateWalk(){
   if(roomBannerT>0)roomBannerT--;
   // 近接判定
   room.near=null;
+  for(const g of c.gimmicks||[]){ if(Math.hypot(room.px-g.x,room.py-g.y)<46){ room.near={type:'gimmick',obj:g}; } }
   for(const n of c.npcs||[]){ if(Math.hypot(room.px-n.x,room.py-n.y)<46){ room.near={type:'npc',obj:n}; } }
   if(c.saveAt && Math.hypot(room.px-c.saveAt.x,room.py-c.saveAt.y)<46){ room.near={type:'save'}; }
   // 出口（右はし）
@@ -1811,9 +2113,14 @@ function updateWalk(){
   if(room.px>exitX-10){ room.near={type:'exit'}; }
   if(consume('confirm') && room.near){
     if(room.near.type==='npc'){ se('confirm'); say(splitLines(room.near.obj.lines.join('\n')),()=>{state=ST.WALK;clearPressed();},true); }
+    else if(room.near.type==='gimmick'){ const g=room.near.obj; const r=(g.use?g.use(room.gst,g):null)||{};
+      se(r.se||'confirm'); const lines=r.lines||g.lines||['…'];
+      say(splitLines(lines.join('\n')),()=>{state=ST.WALK;clearPressed(); if(r.then)r.then();},true); }
     else if(room.near.type==='save'){ se('save'); doSave(); }
-    else if(room.near.type==='exit'){ se('confirm'); const ex=c.onExit;
-      if(c.exitText){ say(splitLines(c.exitText),()=>{ ex&&ex(); },true); } else { ex&&ex(); } }
+    else if(room.near.type==='exit'){ const lock = c.exitLocked? c.exitLocked(room.gst): null;
+      if(lock){ se('cancel'); say(splitLines(lock),()=>{state=ST.WALK;clearPressed();},true); }
+      else { se('confirm'); const ex=c.onExit;
+        if(c.exitText){ say(splitLines(c.exitText),()=>{ ex&&ex(); },true); } else { ex&&ex(); } } }
   }
 }
 function doSave(){
@@ -1838,6 +2145,27 @@ function drawWalk(){
   ctx.fillStyle=(room.near&&room.near.type==='exit')?'#ff3':'#555';
   txt('▶',W-40,H/2-20,28,(room.near&&room.near.type==='exit')?'#ff3':'#555','center');
   txt('みち',W-40,H/2+12,16,'#888','center');
+  // ギミック（ともしび台・歯車 など 状態を 持つ 操作対象）
+  for(const g of c.gimmicks||[]){ const on=g.isOn?g.isOn(room.gst):false; const near=(room.near&&room.near.obj===g);
+    if(g.kind==='lamp'){ // ともしび台: 点灯/消灯
+      ctx.strokeStyle=on?'#fc3':'#555'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(g.x,g.y+12); ctx.lineTo(g.x,g.y-6); ctx.stroke();   // 柱
+      ctx.strokeRect(g.x-9,g.y-12,18,8);
+      if(on){ const fl=Math.sin(Date.now()*0.012+g.x)*2; ctx.fillStyle='#fc3';
+        ctx.beginPath(); ctx.ellipse(g.x,g.y-14+fl,5,9,0,0,7); ctx.fill();
+        ctx.fillStyle='#fff'; ctx.beginPath(); ctx.ellipse(g.x,g.y-12+fl,2,4,0,0,7); ctx.fill(); }
+      txt(g.label,g.x,g.y+30,14,near?'#ff3':(on?'#fc3':'#999'),'center');
+    } else if(g.kind==='gear'){ // 歯車: そろう(明)/みだれる(暗・ゆれる)
+      const wob=on?0:Math.sin(Date.now()*0.02+g.x)*3; ctx.save(); ctx.translate(g.x,g.y+wob);
+      ctx.strokeStyle=on?'#ccc':'#555'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(0,0,16,0,7); ctx.stroke();
+      for(let a=0;a<8;a++){ const an=a/8*Math.PI*2; ctx.beginPath(); ctx.moveTo(Math.cos(an)*16,Math.sin(an)*16); ctx.lineTo(Math.cos(an)*22,Math.sin(an)*22); ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(0,0,5,0,7); ctx.stroke(); ctx.restore();
+      txt(g.label,g.x,g.y+36,14,near?'#ff3':(on?'#ccc':'#888'),'center');
+    } else { // 汎用
+      ctx.fillStyle=on?'#cc6':'#777'; ctx.fillRect(g.x-12,g.y-16,24,30);
+      txt(g.label,g.x,g.y+20,14,near?'#ff3':'#aaa','center');
+    }
+  }
   // NPC
   for(const n of c.npcs||[]){
     ctx.fillStyle='#888'; ctx.fillRect(n.x-12,n.y-16,24,30);
@@ -1856,6 +2184,17 @@ function drawWalk(){
   // 操作ヒント
   if(room.near){ const m=room.near.type==='exit'?'すすむ':room.near.type==='save'?'ともしびに ふれる':'しらべる';
     txt((IS_TOUCH?'タップ: ':'Z: ')+m,room.px,room.py-28,16,'#ff3','center'); }
+  // 暗闇演出（視界制限）── ハートの まわりだけ ほのかに 見える
+  if(c.darkness && !room.gst.lit){
+    const R=118; const gg=ctx.createRadialGradient(room.px,room.py,14,room.px,room.py,R);
+    gg.addColorStop(0,'rgba(0,0,0,0)'); gg.addColorStop(0.7,'rgba(0,0,0,0.55)'); gg.addColorStop(1,'rgba(0,0,0,0.97)');
+    ctx.fillStyle=gg; ctx.fillRect(0,0,W,H);
+    // とおくの ともしび／ギミックは、ほのかな ひかりとして 闇に にじむ（道しるべ）
+    for(const g of c.gimmicks||[]){ if(g.beacon){ const d=Math.hypot(room.px-g.x,room.py-g.y);
+      const a=Math.max(0,Math.min(0.5,(260-d)/520)); if(a>0){ const fl=Math.sin(Date.now()*0.012+g.x)*1.5;
+        const bg=ctx.createRadialGradient(g.x,g.y-12,1,g.x,g.y-12,26); bg.addColorStop(0,'rgba(255,210,90,'+(a+0.15)+')'); bg.addColorStop(1,'rgba(255,210,90,0)');
+        ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(g.x,g.y-12+fl,26,0,7); ctx.fill(); } } }
+  }
   // バナー
   if(roomBannerT>0){ ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,58,26,'#fff','center'); ctx.globalAlpha=1; }
   // 下部ヒント
@@ -1864,7 +2203,7 @@ function drawWalk(){
 
 /* =======================  戦闘  ======================= */
 let enemies=[],eIndex=0,enemy=null;
-const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial'};
+const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle'};
 let state=ST.TITLE;
 let menuIndex=0; const MENU=['たたかう','こうどう','どうぐ','みのがす'];
 let subType='',subIndex=0,subOptions=[];
@@ -2351,6 +2690,7 @@ function update(){
       break;}
     case ST.CUT: updateCut(); break;
     case ST.WALK: updateWalk(); break;
+    case ST.PUZZLE: updatePuzzle(); break;
     case ST.DIALOG:
       dialogTimer++;
       if(dialogShown<dialogText.length){ const vv=currentVoice();
@@ -2405,7 +2745,7 @@ function updateCut(){
   }
 }
 function resetGame(){ Object.assign(player,{hp:20,maxhp:20,lv:1,exp:0,gold:0,candy:3,kills:0,spares:0});
-  Object.assign(flags,{obeyedSmoke:false,seq:0,argorSpared:false}); enemies=makeEnemies(); buildStory(); curPlace=''; eIndex=0; }
+  Object.assign(flags,{obeyedSmoke:false,seq:0,argorSpared:false}); inventory=[]; enemies=makeEnemies(); buildStory(); curPlace=''; eIndex=0; }
 
 function updateBulletPhase(){
   const b=bphase,box=b.box; b.t++; const pad=6;
@@ -2442,6 +2782,7 @@ function draw(){
     case ST.TITLE: drawTitle(); break;
     case ST.CUT: drawCut(); break;
     case ST.WALK: drawWalk(); break;
+    case ST.PUZZLE: drawPuzzle(); break;
     case ST.ARGORCUT: drawArgorCut(); break;
     case ST.TUTORIAL: drawTutorial(); break;
     case ST.GAMEOVER: drawGameOver(); break;
