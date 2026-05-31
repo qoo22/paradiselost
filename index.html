@@ -7,7 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#000000">
-<title>Arcadia ── 完全版</title>
+<title>やさしい失楽園 ── 完全版</title>
 <style>
   *{ -webkit-tap-highlight-color:transparent; -webkit-touch-callout:none; }
   html,body{margin:0;padding:0;background:#000;width:100%;height:100%;
@@ -94,7 +94,7 @@
 <script>
 "use strict";
 /* =========================================================================
-   Arcadia  ── 完全版 (The Gentle Paradise Lost · Full)
+   やさしい失楽園  ── 完全版 (The Gentle Paradise Lost · Full)
    オリジナルの物語・音楽・アート。設計思想はアンダーテール型。
    © 物語/楽曲はこのゲームのための完全オリジナル。
    ========================================================================= */
@@ -1305,7 +1305,7 @@ function endTrueFinal(){
 function endTruePhoto(){
   cutscene('ending_group',[
     'みんなで とった、たった 一枚の しゃしん。\nわすれられて いた みんなの、\n これからも わすれない、たからもの。',
-    '   ──── Arcadia ────\n      ~ ① 真・やさしい おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ① 真・やさしい おわり ~',
     'あそんで くれて、ありがとう。\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.14});
 }
@@ -1322,7 +1322,7 @@ function endGenocide(){
     '「もう きみと ぼくは、おなじ もの。\n  さあ、いっしょに 地上へ 行こう。\n  こんどは、地上を こわがらせて やろう」',
     'まっくろな けむりが、きみの せなかに、\n ぴたりと、はりついた。',
     '地下は、からっぽ に なった。\nもう、だれの こえも、聞こえ ない。',
-    '   ──── Arcadia ────\n      ~ ② むなしい おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ② むなしい おわり ~',
     'たおす ことは、いつだって かんたんだった。\nもう いちど、べつの えらびを みて みたく ないか?\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.5, fx:'ash'});
 }
@@ -1338,7 +1338,7 @@ function endSmokeConsumed(k,s){
     'とびらは ひらいた。けれど ひかりは、\nなぜか、いつもより うすく 見えた。',
     'あなたは かいだんを のぼる。\nせなかに、つめたい けむりを、はりつかせた まま。',
     '── まだ、ひきかえせる。\n  のこした やさしさが、きえて しまう まえに。',
-    '   ──── Arcadia ────\n      ~ ③ のまれかけの おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ③ のまれかけの おわり ~',
     'Z で タイトルへ',
   ], ()=>backToTitle(), {dark:0.5, fx:'ash'});
 }
@@ -1355,7 +1355,7 @@ function endKingFallen(k,s){
     'けむりが、たちのぼる。\n「やさしい きみでも、\n  さいごの ひとりは、けして しまった」',
     '「……きみは、わるい 子じゃ ない。\n  ただ、つかれて いた のかも しれないね」',
     'あなたは かいだんを のぼり ながら、\n玉座の 灰を、いちどだけ ふりかえった。',
-    '   ──── Arcadia ────\n      ~ ④ 王を 討った おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ④ 王を 討った おわり ~',
     '王を 救う みちも、あった。\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.45, fx:'ash'});
 }
@@ -1372,7 +1372,7 @@ function endKingSaved(k,s){
     '「その やさしさを、わすれては いけないよ」',
     'けむりが、なかば すきとおった すがたで わらう。\n「ずいぶん、うすく なって しまった よ」',
     'あなたは かいだんを のぼる。\nすくえた ぬくもりと、すくえなかった しずけさを、\n どちらも 胸に だいて。',
-    '   ──── Arcadia ────\n      ~ ⑤ 王を 救った おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ⑤ 王を 救った おわり ~',
     'もう ひとりも 失わない みちも、ある。\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.35, fx:'light'});
 }
@@ -1392,7 +1392,7 @@ function endNeutral(k,s,kakutoSpared){
     '「まよえる、って ことは ── \n  きみの こころが、まだ 生きてる って ことさ」',
     'ケムリは ふっと わらって、うすれて いった。「またね」',
     'つぎは ── どう、えらぶ だろうか。',
-    '   ──── Arcadia ────\n      ~ ⑥ まじりあう おわり ~',
+    '   ──── やさしい失楽園 ────\n      ~ ⑥ まじりあう おわり ~',
     'すべてを たすける みちも、ここには ある。\n\nZ で タイトルへ',
   ], ()=>backToTitle(), {dark:0.4, fx:(kakutoSpared?'light':'ash')});
 }
@@ -2426,6 +2426,9 @@ function drawStoneRoom(c){
     ctx.beginPath(); ctx.moveTo(x+4,y+4); ctx.lineTo(x+S-4,y+S-4); ctx.moveTo(x+S-4,y+4); ctx.lineTo(x+4,y+S-4); ctx.stroke(); }
 }
 
+/* 錠を 解いたら 自動で 進まず、部屋に もどって「鍵が あいた」状態に。右の『次へ』で 次ステージへ */
+function unlockRoom(msg){ room.gst.unlocked=true; roomBanner=(msg||'錠が あいた!')+'  → 右の「次へ ▶」で すすもう'; roomBannerT=240; state=ST.WALK; clearPressed(); }
+
 function buildStory(){
   STORY=[];
   const C=(label,img,pages,dark,theme)=>STORY.push({label,run:()=>{ if(theme)playTheme(theme); cutscene(img,(typeof pages==='function'?pages():pages),advance,{dark:dark==null?0.5:dark}); }});
@@ -2475,7 +2478,7 @@ function buildStory(){
   BT('', 1); // ネム
   AF('', 1, ['ネムは、二どと おきなく なった。','EXP が 入った。\nゆめの あぶくが、しずかに きえた。'], ['ネムは、しあわせそうに ねむって いる。','おこさない ように、そっと とおった。']);
   WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏 ──（戦闘 ネム の あと）
-    initGst:()=>({fluteFound:false}),
+    initGst:()=>({fluteFound:false, unlocked:false}),
     npcs:[
       {x:150,y:300,label:'ふるい 燭台',lines:['ろうの たれた、ふるい 燭台。','ただ、しずかに 立って いる。','(……とくに、しかけは なさそうだ)']},
       {x:480,y:310,label:'やぶれた 旗',lines:['色あせて、やぶれた 旗。','風も ないのに、かすかに ゆれた 気が した。','(……気のせい、だろうか)']},
@@ -2488,18 +2491,20 @@ function buildStory(){
           return {se:'save', lines:['石像は、口を ぽかんと あけている。','その おくに 手を いれて みると ──','「ほねの ふえ」を 手に いれた!','(壁画の しらべを、奏でて みよう)']}; } },
       {x:430,y:175,label:'ほこらの 扉', kind:'door',
         onConfirm:()=>{ if(hasItem('flute')) startMusic({title:'うたう ほこら', bg:'bg_ruins', song:[0,2,4,2,0],
-            solved:['ふえの しらべ ── あの 子守唄が、ほこらに ひびいた。','── どこか とおくで、けむりが、\n  かすかに ふるえた 気が した。','ゴゴ ── 扉が、ゆっくり ひらいて いく。']});
+            solved:['ふえの しらべ ── あの 子守唄が、ほこらに ひびいた。','── どこか とおくで、けむりが、\n  かすかに ふるえた 気が した。','ゴゴ ── ほこらの 扉が、ひらいた。'],
+            after:()=>unlockRoom('ほこらの 扉が ひらいた!')});
           else { se('cancel'); say(['かたく とじた、ほこらの 扉。','まんなかに、ふえの 形の くぼみ。','(ふえが あれば、奏でられそうだ)'],()=>{state=ST.WALK;clearPressed();},true); } } },
     ],
     saveAt:{x:95,y:200},
-    exitLocked:(g)=> '先へ つづく 道は、ほこらの 扉の おく。\n(壁画の しらべを、ふえで 奏でよう)',
-    exitText:''}, 'ruins');
+    exitLocked:(g)=> g.unlocked? null : 'ほこらの 扉は まだ とじている。\n(壁画の しらべを、ふえで 奏でよう)',
+    exitText:'ひらいた 扉の おくへ、あなたは すすんだ ──'}, 'ruins');
   WK('まち跡の おくみち', {title:'まち跡の おくみち', bg:'bg_ruins',
     npcs:[
       {x:200,y:180,label:'はりがみ',lines:['ふるい はりがみ。','『ヒトを 見たら にげろ。\n  ヒトは 世界を こわす もの なり』','その下に、ちいさな らくがき。\n 『でも、ともだちに なれるかも』']},
       {x:440,y:320,label:'ホネの あしあと',lines:['行ったり きたりした、ホネの あしあと。','だれかが くるのを、ずっと\n まちわびて いた みたいだ。']},
     ], saveAt:{x:120,y:300}, exitText:'みちは、ふるい 温室へと つづいて いる ──'}, 'ruins');
   WK('わすれられた 温室', {title:'わすれられた 温室', bg:'bg_ruins',   // 葉の かずを 数える → 4桁コード ──（ボスの 前）
+    initGst:()=>({unlocked:false}),
     npcs:[
       {x:140,y:300,label:'一の 鉢',lines:['ひからびた 鉢植え。','かれかけた 葉が、4まい のこって いる。']},
       {x:270,y:325,label:'二の 鉢',lines:['ちいさな 鉢植え。','葉は、2まい だけ。']},
@@ -2507,9 +2512,9 @@ function buildStory(){
       {x:530,y:325,label:'四の 鉢',lines:['かたむいた 鉢植え。','葉は、3まい。']},
       {x:200,y:175,label:'かれた 立て札',lines:['土に ささった、立て札。','『水やりの 順は ── 鉢の 葉の かず。','  左の 鉢から、ならび 順に』']},
     ],
-    gimmicks:[ {x:470,y:170,label:'温室の 錠', kind:'door', onConfirm:()=>startCodeLock(leafCodeCfg())} ],
+    gimmicks:[ {x:470,y:170,label:'温室の 錠', kind:'door', onConfirm:()=>{ const cfg=leafCodeCfg(); cfg.after=()=>unlockRoom('温室の 錠が はずれた!'); startCodeLock(cfg); }} ],
     saveAt:{x:95,y:200},
-    exitLocked:()=> '先へ つづく 小道は、四桁の 錠の おく。\n(鉢の 葉の かずを、左から 順に)',
+    exitLocked:(g)=> g.unlocked? null : '先へ つづく 小道は、四桁の 錠の おく。\n(鉢の 葉の かずを、左から 順に)',
     exitText:'錠の おくに ── ガタガタ ふるえる、\nちいさな みはりが いる。'}, 'ruins');
   FN('', bossIntroHone);
   BT('', 2); // ホネくん
@@ -2556,8 +2561,16 @@ function buildStory(){
       {x:230,y:320,label:'がくやの かがみ',lines:['われた がくやの かがみ。','すみに れんしゅうの あと。','『笑え。客が ひとりでも、\n  スターは わらう もの』']},
       {x:450,y:180,label:'スポットライト',lines:['ほこりを かぶった、スポットライト。','まだ、ひとつ だけ ついている。','だれかが、まだ おどって いる らしい。']},
     ], saveAt:{x:120,y:200}, exitText:'ぶたいの おくで ── こだまが、ひかりと 音で\nなにかを つたえようと している。'}, 'theater');
-  FN('', ()=>{ playTheme('theater'); startMemory({title:'こだまの 試練', bg:'title_bg', lamps:4, len:5,
-    solved:['こだまたちが、よろこんで ひびきあった。','「おぼえて いて くれて、ありがとう」','スポットライトの おくへの 道が、ひらいた。']}); });   // 記憶(サイモン)
+  WK('こだまの 試練', {title:'こだまの 試練', bg:null,   // 記憶(サイモン) ── 解いたら 右の 次へ
+    initGst:()=>({unlocked:false}),
+    npcs:[{x:200,y:300,label:'からの 客席',lines:['ずらりと ならぶ、からの 客席。','ぶたいの おくで、こだまが ひかりと 音で','なにかを つたえようと している。']}],
+    gimmicks:[ {x:340,y:175,label:'こだまの 仕掛け', kind:'door',
+      onConfirm:()=>startMemory({title:'こだまの 試練', bg:'title_bg', lamps:4, len:5,
+        solved:['こだまたちが、よろこんで ひびきあった。','「おぼえて いて くれて、ありがとう」','スポットライトの おくへの 道が、ひらいた。'],
+        after:()=>unlockRoom('こだまの 道が ひらいた!')}) } ],
+    saveAt:{x:100,y:200},
+    exitLocked:(g)=> g.unlocked? null : '先へ つづく 道は、こだまの 仕掛けの おく。\n(光と 音の 順を 覚えて、同じ 順に なぞろう)',
+    exitText:'ひらいた 道の おくへ、あなたは すすんだ ──'}, 'theater');
   FN('', bossIntroKirari);
   BT('', 5); // キラリ
   AF('', 5, [
@@ -2629,6 +2642,7 @@ function buildStory(){
   BT('', 10); // ホウキ
   AF('', 10, ['ホウキは、ほこりに かえって きえた。','EXP が 入った。ゆかに、ほこりが つもる。'], ['ホウキは、そうじを てつだって もらって\nごきげんに、すうっと きえた。']);
   WK('色あわせの 間', {title:'色あわせの 間', bg:'bg_factory',   // 部屋じゅうから 色順を 集める → 色錠 ──（戦闘 ホウキ の あと）
+    initGst:()=>({unlocked:false}),
     npcs:[
       {x:140,y:300,label:'赤い 塗料かん',lines:['たなの、赤い 塗料かん。','ラベルに、ちいさく 「3」。']},
       {x:290,y:325,label:'青い 塗料かん',lines:['青い 塗料かん。','「1」と 書かれている。']},
@@ -2636,24 +2650,25 @@ function buildStory(){
       {x:540,y:325,label:'黄の 塗料かん',lines:['黄いろの 塗料かん。','ふたの すみに、「2」。']},
       {x:200,y:175,label:'作業の 手順',lines:['かべの、作業手順書。','『四つの 色を、番号の','  小さい 順に 押せ』']},
     ],
-    gimmicks:[ {x:470,y:170,label:'色の 錠', kind:'door', onConfirm:()=>startColorLock(colorRoomCfg())} ],
+    gimmicks:[ {x:470,y:170,label:'色の 錠', kind:'door', onConfirm:()=>{ const cfg=colorRoomCfg(); cfg.after=()=>unlockRoom('色の 錠が あいた!'); startColorLock(cfg); }} ],
     saveAt:{x:95,y:200},
-    exitLocked:()=> '先へ つづく 戸は、四つの 色の 錠。\n(部屋の 色と 番号を 集め、小さい 順に)',
-    exitText:''}, 'factory');
+    exitLocked:(g)=> g.unlocked? null : '先へ つづく 戸は、四つの 色の 錠。\n(部屋の 色と 番号を 集め、小さい 順に)',
+    exitText:'あいた 戸の おくへ、あなたは すすんだ ──'}, 'factory');
   FN('', ()=>smokeStage(3));
 
   /* ===== 終盤: 広場 → とびら → カクト → ケムリ → 結末 ===== */
   FN('わすれられた 広場', plazaRoom);
   WK('番人の 錠前', {title:'番人の 錠前', bg:'bg_factory',   // 暗号・推理の 入力錠
+    initGst:()=>({unlocked:false}),
     npcs:[
       {x:160,y:300,label:'しるし書き(一)',lines:['かべに かかった、木の ふだ。','『番人の しるし ──','  「火」は 一。「歯」は 四』']},
       {x:330,y:320,label:'しるし書き(二)',lines:['もう ひとつの 木の ふだ。','『番人の しるし ──','  「水」は 七。「灰」は 九』']},
       {x:490,y:300,label:'読み方の 注意',lines:['すりへった 注意書き。','『錠前の しるしは、','  右から 左へ 読む こと』']},
     ],
-    gimmicks:[ {x:330,y:165,label:'四桁の 錠前', kind:'door', onConfirm:()=>startCodeLock(codeLockCfg())} ],
+    gimmicks:[ {x:330,y:165,label:'四桁の 錠前', kind:'door', onConfirm:()=>{ const cfg=codeLockCfg(); cfg.after=()=>unlockRoom('番人の 錠前が あいた!'); startCodeLock(cfg); }} ],
     saveAt:{x:100,y:200},
-    exitLocked:()=> '先へ 行くには、錠前を とく ひつようが ある。\n(かべの 木ふだ 三つを 読んで、四桁を そろえよう)',
-    exitText:''}, 'factory');
+    exitLocked:(g)=> g.unlocked? null : '先へ 行くには、錠前を とく ひつようが ある。\n(かべの 木ふだ 三つを 読んで、四桁を そろえよう)',
+    exitText:'あいた 錠前の おくへ、あなたは すすんだ ──'}, 'factory');
   FN('', gateRoom);
   BT('', 11); // カクト
   /* ===== 最終ステージ: とびらの おく → 玉座の間 ── 灰冠の王 アルゴール ===== */
@@ -3474,7 +3489,7 @@ const KING_W=212, KING_H=212, KING_Y=118;   // 王の すがた: 正方形・つ
 
 function drawTitle(){
   drawImgCover(IMG.title_bg,0.55);
-  txt('Arcadia',W/2,118,46,'#fff','center');
+  txt('やさしい失楽園',W/2,118,46,'#fff','center');
   txt('THE  GENTLE  PARADISE  LOST',W/2,176,15,'#888','center');
   txt(titleSub,W/2,236,18,'#ccc','center');
   txt('あいての HP では なく、こころを みる。',W/2,264,15,'#888','center');
