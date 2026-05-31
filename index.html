@@ -100,7 +100,7 @@
    ========================================================================= */
 
 /* ---- 画像 (外部ファイル img/<name>.png を参照) ---- */
-const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne"];
+const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_smoke_cute","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne"];
 const IMG = {};
 for(const k of IMG_KEYS){ const im=new Image(); im.src="img/"+k+".png"; IMG[k]=im; }
 
@@ -1469,7 +1469,7 @@ const tut={ orb:null };
 function smokeTutorial(){
   playTheme('explore');
   const moveHint = IS_TOUCH ? '下の ボックスを ゆびで なぞる' : 'やじるしキー(↑↓←→)で うごく';
-  cutscene('char_smoke',[
+  cutscene('char_smoke_cute',[   // 騙すまでは かわいい お助け役の すがた
     'ケムリは、にこにこと きみの まわりを まわった。',
     '「ようこそ、ちかの せかいへ！\n  ぼくが あそびかたを おしえて あげる」',
     '「うごきかたは、かんたん。\n  '+moveHint+' だけ だよ」',
@@ -1495,7 +1495,7 @@ function updateTutorial(){
   if(!o.got && dx*dx+dy*dy < (o.r+7)*(o.r+7)){ o.got=true; smokeBetray2(); }  // 触れた瞬間 裏切り
 }
 function drawTutorial(){
-  drawImgCover(IMG.char_smoke, 0.6);
+  drawImgCover(IMG.char_smoke_cute, 0.6);   // チュートリアル中も かわいい すがた
   txt('* ケムリ', W/2, 26, 16, '#fff','center');
   const b=bphase.box; ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.strokeRect(b.x,b.y,b.w,b.h);
   // ともしびの かけら（ひかる 玉）
@@ -1510,8 +1510,14 @@ function drawTutorial(){
 function smokeBetray2(){
   stopMusic(); se('break'); shake=22; flash=16; player.hp=Math.max(4,player.hp-8);
   playTheme('dark');
-  cutscene('char_smoke',[
+  // まだ かわいい すがた のまま、ひかりに 撃たれる
+  cutscene('char_smoke_cute',[
     'バチッ！\nひかりの かけらが はじけて、きみを うった。',
+  ], ()=>smokeBetray3(), {dark:0.55});
+}
+function smokeBetray3(){
+  // ★ここで 本性（今の 煙の画像）へ ── 笑顔が ゆがむ
+  cutscene('char_smoke',[
     'ケムリの 笑顔が、ぐにゃりと ゆがむ。',
     '「あはっ。……ひっかかった ね、いい子」',
     '「この 世界の ルールを おしえて あげる。\n  ── ころすか、ころされるか」',
