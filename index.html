@@ -100,7 +100,7 @@
    ========================================================================= */
 
 /* ---- 画像 (外部ファイル img/<name>.png を参照) ---- */
-const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_smoke_cute","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne"];
+const IMG_KEYS = ["char_hone","char_kirari","char_wanda","char_kakuto","char_smoke","char_smoke_cute","char_soyo","char_nemu","char_kasa","char_pachi","char_shizuku","char_kodama","char_neji","char_houki","char_homura","char_argor","char_argor_calm","char_argor_2","char_argor_atk","spear1","spear2","spear3","title_bg","room_gate","ending_light","ending_hollow","ending_group","save_flame","bg_ruins","bg_water","bg_factory","char_smoke_big","bg_throne"];
 const IMG = {};
 for(const k of IMG_KEYS){ const im=new Image(); im.src="img/"+k+".png"; IMG[k]=im; }
 
@@ -1046,8 +1046,8 @@ function sceneAwaken(){
   ], ()=>smokeIntro(), {dark:0.4});
 }
 function smokeIntro(){
-  cutscene('char_smoke',[
-    'ふわり、と どこからか けむりが たちのぼった。\nふたつの 目が、すうっと 形を むすび、\n にやりと わらう。',
+  cutscene('char_smoke_cute',[   // 登場時は かわいい お助け役の すがた（騙すまで）
+    'ふわり、と どこからか けむりが たちのぼった。\nふたつの 目が、すうっと 形を むすび、\n にこっと わらう。',
     '「やあ！ ようこそ、おちて きた 子。\n  ぼくは ケムリ。きみの ガイド役さ。\n  こまった ことが あれば、なんでも きいて」',
     '「こわがらなくて いいよ。\n  ぼくは とっても しんせつ なんだ。\n  この 地下の こと、ぜんぶ おしえて あげる」',
     '「いいかい。ここは、ふつうの 世界じゃ ない。\n  であった ものから ちからを うばった 者だけが、\n  あの とびらを こえて、地上へ 帰れる」',
@@ -1057,14 +1057,14 @@ function smokeIntro(){
   ], ()=>smokeChoice(), {dark:0.5});
 }
 function smokeChoice(){
-  cut.img='char_smoke'; cut.pages=['「さあ ── どう する?\n  ぼくの いう とおりに、する かい?」']; cut.idx=0; loadPage();
+  cut.img='char_smoke_cute'; cut.pages=['「さあ ── どう する?\n  ぼくの いう とおりに、する かい?」']; cut.idx=0; loadPage();
   cut.choice={ q:'ケムリの いう とおりに する？',
     opts:[
-      {label:'したがう', after:()=>{flags.obeyedSmoke=true; cutscene('char_smoke',[
+      {label:'したがう', after:()=>{flags.obeyedSmoke=true; cutscene('char_smoke_cute',[
         '「くくっ。いい子 だ。\n  そう、それで いい。\n  ちからこそ、すべて。やさしさは、よわさだ」',
         '「であった やつを たおすたび、\n  きみは つよく なる。\n  ……たのしみに してるよ。ずっと、見てる」',
         'ケムリは、まんぞくげに、けむりに とけた。\nなんだか、せなかが すこし、つめたい。'],()=>advance(),{dark:0.5});}},
-      {label:'ことわる', after:()=>{flags.obeyedSmoke=false; cutscene('char_smoke',[
+      {label:'ことわる', after:()=>{flags.obeyedSmoke=false; cutscene('char_smoke_cute',[
         '「……へえ。うばわ ない、って?」',
         '「だれも たおさずに、帰れる とでも?\n  やさしさ なんて、ここでは 何の 役にも\n  たたない のに」',
         '「ふうん。……つまらない 子だな」',
@@ -1258,25 +1258,48 @@ function endTruePacifist(){
     '「……ありがとう、ヒトの 子よ」',
     'あなたは、あつめた かぎを、とびらに さしこんだ。',
     'かちり ── と、ふかい 音。\nとびらの「とじた 目」が、何百年 ぶりに、ひらいた。',
-    'とびらは 思い出して いた。\nおとぎは こわい もので なんて、なかった。\nただ、わすれられた だけ だった と。',
     'まばゆい ひかりの かいだんが、\nやみの おくから、地上へ のびて いく。',
-    'ふりかえると ── ホネくんが、もう ふるえずに 立ち、\nキラリが からっぽ だった 客席へ おじぎを する。',
-    'もどって きた おとぎたちが、ひとり、また ひとりと、\n その 客席を、しずかに うめて いく。',
-    'ワンダが しっぽを ふって かけてきて、\nカクトが れいぎ正しく 頭を さげた。\nそして アルゴールが、みんなを 見まもって いた。',
-    'そこへ ── けむりが、すうっと たちのぼった。',
-    flags.obeyedSmoke
-      ? '「……けっきょく きみ、ひとりも たおさ なかったね。\n  ぼくの いう こと、ぜんぶ きかなかった くせに」'
-      : '「ずっと 見てたよ。きみが、ひとりも たおさないのを」',
-    '「ぼくは ね ── ヒトに わすれられた\n  『おそれ』そのもの だった のかも しれない」',
-    '「だれかが こわがる たびに、ぼくは こく なる。\n  だれかが ゆるす たびに、ぼくは うすく なる」',
-    '「きみと いて、ぼくは こんなに うすく なった。\n  ……わるく ない 気分だ」',
-    'ケムリは、はじめて やさしく わらって、\n ひかりの 中に、とけて きえた。',
+    'もどって きた おとぎたちが、ひとり、また ひとりと、\n あたたかい ひかりの 下に、あつまって いく。',
+  ], ()=>endTrueSmoke(), {dark:0.3, fx:'light'});
+}
+/* 真エンドの ケムリ: 実は むかし ここに おちた 子どもの 霊。
+   世界を うらんで いたが、プレイヤーの えらびで「向きあう ことの あたたかさ」に 気づき、改心して 成仏する。 */
+function endTrueSmoke(){
+  cutscene('char_smoke_cute',[   // 改心した ので かわいい すがた で あらわれる
+    'そこへ ── けむりが、すうっと たちのぼった。\nけれど その かたちは ── ちいさな 子どもの ようだった。',
+    '「……ぼくはね。ずっと むかし、きみと おなじ ように、\n  この 地下に おちて きた 子ども なんだ」',
+    '「だれにも 見つけて もらえず、わすれられて、\n  たった ひとりで、きえて いった」',
+    '「さびしくて、くやしくて ── ぼくは 世界を うらんだ。\n  だから、おちて くる 子に ささやいた。\n  『うばえ。たおせ。ゆるすな』って」',
+    '「でも ── きみは、ちがった。\n  こわい ぼくにも、にげずに 向きあって くれた」',
+    '「だれかと 向きあう ことが、ゆるす ことが、\n  こんなに あたたかい だなんて ──\n  ぼく、すっかり わすれて いたんだ」',
+    'ケムリの 子どもは、はじめて、ほんとうに わらった。\n「ありがとう。もう、いいんだ。\n  ……ぼく、やっと、いける 気が する」',
+    'ちいさな ひかりが ふわりと うかび、\n あたたかい ひかりの 中へ、しずかに のぼって いった。\n── ようやく、成仏 できたんだ。',
+  ], ()=>endTrueGroup(), {dark:0.3, fx:'light'});
+}
+/* 真エンド: これまでの モンスターたちの 集合写真 */
+function endTrueGroup(){
+  cutscene('ending_group',[
+    'とびらの まえに、みんなが あつまって いた。',
+    'そよ。ネム。ホネくん。カサ。パチ。キラリ。\nシズク。コダマ。ワンダ。ネジ。ホウキ。カクト。',
+    'ホムラが やさしく ほほえみ、\n アルゴールが、その となりに 立つ。',
+    '「さあ、こっちを 見て。\n  ── はい、チーズ」',
+    'ぱしゃり。\nわすれられて いた みんなの、はじめての、\n そして、わすれられない 一枚。',
+  ], ()=>endTrueFinal(), {dark:0.18});
+}
+function endTrueFinal(){
+  cutscene('ending_light',[
     'あなたは、かいだんを のぼる。\nLV は、1 の まま。なにも うばわず、なにも 失わ なかった。',
     'やがて、ほおに 風が あたる。地上の、よる の におい。\nふりかえると、とびらは ── もう、とじて いない。',
-    '「つよさ」とは、たおした 数では なかった。\nそれは、だれかを わかろうと する\n こころの ことだった。',
+    '「つよさ」とは、たおした 数では なかった。\nそれは、だれかと 向きあい、わかろうと する\n こころの ことだった。',
+  ], ()=>endTruePhoto(), {dark:0.3, fx:'light'});
+}
+/* 最後の終わり: みんなの 集合写真（img/ending_group.png）を 大きく うつして しめくくる */
+function endTruePhoto(){
+  cutscene('ending_group',[
+    'みんなで とった、たった 一枚の しゃしん。\nわすれられて いた みんなの、\n これからも わすれない、たからもの。',
     '   ──── やさしい失楽園 ────\n      ~ ① 真・やさしい おわり ~',
     'あそんで くれて、ありがとう。\n\nZ で タイトルへ',
-  ], ()=>backToTitle(), {dark:0.3, fx:'light'});
+  ], ()=>backToTitle(), {dark:0.14});
 }
 function endGenocide(){
   playTheme('end_dark');
@@ -2515,7 +2538,7 @@ function drawBattle(){
       if(fierce) drawRedSpear(W/2+4, KING_Y+28, 236, 0.60);   // 赤い槍は 変身後だけ（王の大きさに合わせる）
     } else {
       const sh=enemy.spareReady?0:(state===ST.ENEMY?Math.sin(bphase.t*0.3)*3:0);
-      drawImgFit(IMG[enemy.key], W/2+sh, 130, 200, 180);
+      drawImgFit(IMG[enemy.key], W/2+sh, 120, 242, 216);   // モンスター画像を 少し 大きく
     }
     let col=enemy.spareReady?'#ff3':'#fff';
     let nm = (enemy.final && enemy.crownFell)? enemy.shortName : enemy.name;
