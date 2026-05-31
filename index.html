@@ -1287,6 +1287,9 @@ function endTrueSmoke(){
     '「さびしくて、くやしくて ── ぼくは 世界を うらんだ。\n  だから、おちて くる 子に ささやいた。\n  『うばえ。たおせ。ゆるすな』って」',
     '「でも ── きみは、ちがった。\n  こわい ぼくにも、にげずに 向きあって くれた」',
     '「だれかと 向きあう ことが、ゆるす ことが、\n  こんなに あたたかい だなんて ──\n  ぼく、すっかり わすれて いたんだ」',
+    '「……それに ね。きみが ほこらで ふいた、\n  あの 子守唄。『ド ミ ソ ミ ド』」',
+    '「ずっと むかし ── ぼくが おちて きた よる、\n  おとぎの だれかが、ぼくにも うたって くれた んだ。\n  『もう、こわく ないよ』って」',
+    '「わすれて いた のに ── きみが、ふいに、\n  おもいださせて くれた。\n  ぼくは、ひとりじゃ なかった んだね」',
     'ケムリの 子どもは、はじめて、ほんとうに わらった。\n「ありがとう。もう、いいんだ。\n  ……ぼく、やっと、いける 気が する」',
     'ちいさな ひかりが ふわりと うかび、\n あたたかい ひかりの 中へ、しずかに のぼって いった。\n── ようやく、成仏 できたんだ。',
   ], ()=>endTrueGroup(), {dark:0.3, fx:'light'});
@@ -1485,6 +1488,7 @@ function argorApproach2(){
   playTheme('berg', false, true);   // ベルゲントリュッケン風: ループさせず 1回だけ（王の別れ）
   cutscene('bg_throne',[
     '灰冠の王 アルゴール。\nかつて、民を まもった やさしい 王。',
+    'その あたまには ── 灰いろの 冠。\nあの 鏡の 間で ひかりを 当てた 紋章は、\n この 王の しるし だったのだ。',
     'その まなざしは、おどろくほど おだやかで、\nやさしかった。',
     '「……ヒトの 子よ。\n  きみと であえて、よかった」',
     '「すまない。きみが わるい わけでは ない。\n  だが ── わたしは、王で なければ ならない」',
@@ -1984,10 +1988,12 @@ function hiddenRoomScene(){
   flags.foundHidden=true; playTheme('explore');
   cutscene('save_flame',[
     '小とびらの おくは、ちいさな へや だった。',
-    'たなには、あなたが 地下で ともして きた\nともしびの ひかりが、ひとつ ずつ ならんで いる。',
+    'たなには ── あなたが 旅の 道中で ともしてきた\n火が、ひとつ ずつ ならんで いる。',
+    'ともしびの ならび。うたう ほこら。みずもん。\nかがみの 間。番人の 錠前 ──\n とくたびに、ひとつ、火が よみがえって いた。',
     '消えかけて いた 火が、ここで そっと\nまもられて いた みたいに、あたたかい。',
-    'かべに、ちいさな 文字。\n『見つけて くれて、ありがとう。',
-    '  きみが だれかを 思った その ぶん だけ、\n  この へやは、あかるく なる』',
+    'かべに、ちいさな 文字。\n『これは ぜんぶ、わすれられた おとぎたちが、',
+    '  おちて きた 子の ために、のこした 火。\n  きみが だれかを 思った その ぶん だけ、\n  この へやは、あかるく なる』',
+    '── おちて きた 子。\nその 文字を 見て、なぜか むねが、しんと した。',
     'いちばん おくに、ちいさな ともしびが ひとつ。\nそっと 手に とると、こころが ほどけて いく。',
     '(かくしの ともしびを 見つけた。\n HPが 全回復し、お守りに なった)',
   ], ()=>{ player.hp=player.maxhp;
@@ -2117,21 +2123,70 @@ function drawMusic(){
   if(M.msgT>0){ ctx.globalAlpha=Math.min(1,M.msgT/30); txt(M.msg,W/2,H-60,18,'#f66','center'); ctx.globalAlpha=1; }
 }
 
+/* =======================  色の 順番（ST.COLORLOCK）  =======================
+   部屋じゅうの 色つき もの の 番号から、押す 色の 順を 推理して 入力する */
+const PCOLORS=[{name:'あか',hex:'#e3534f'},{name:'あお',hex:'#5a8fe0'},{name:'みどり',hex:'#5bbf6a'},{name:'き',hex:'#e0c14a'}];
+let colorlock=null;
+function startColorLock(cfg){
+  colorlock={ cfg, target:cfg.seq, inp:[], sel:0, after:cfg.after||advance, msg:'', msgT:0, flash:-1, flashT:0 };
+  state=ST.COLORLOCK; clearPressed();
+}
+function updateColorLock(){
+  const C=colorlock; if(!C)return; if(C.msgT>0)C.msgT--; if(C.flashT>0){C.flashT--; if(C.flashT===0)C.flash=-1;}
+  if(consume('left')){ C.sel=(C.sel+PCOLORS.length-1)%PCOLORS.length; se('select'); }
+  if(consume('right')){ C.sel=(C.sel+1)%PCOLORS.length; se('select'); }
+  if(consume('cancel')){ se('cancel'); if(C.inp.length){ C.inp=[]; C.msg='はじめから'; C.msgT=60; } else { colorlock=null; state=ST.WALK; clearPressed(); } return; }
+  if(consume('confirm')){ C.flash=C.sel; C.flashT=14; se('select'); C.inp.push(C.sel);
+    const i=C.inp.length-1;
+    if(C.inp[i]!==C.target[i]){ se('hurt'); C.msg='ガチ ── 色の 順が ちがう。'; C.msgT=100; C.inp=[]; return; }
+    if(C.inp.length===C.target.length){ se('save'); const af=C.after, cfg=C.cfg; colorlock=null;
+      cutscene(cfg.bg||'title_bg', cfg.solved||['色の 順が そろい、扉が ひらいた。'], ()=>af&&af(), {dark:0.5}); return; }
+  }
+}
+function drawColorLock(){
+  const C=colorlock; if(!C)return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(C.cfg.bg&&IMG[C.cfg.bg]) drawImgCover(IMG[C.cfg.bg],0.85);
+  txt(C.cfg.title||'色の 錠',W/2,72,25,'#fff','center');
+  if(C.cfg.riddle){ for(let i=0;i<C.cfg.riddle.length;i++) txt(C.cfg.riddle[i],W/2,112+i*22,15,'#ccc','center'); }
+  txt('いま: '+(C.inp.map(i=>PCOLORS[i].name).join(' → ')||'──'),W/2,192,16,'#9cf','center');
+  const n=PCOLORS.length, bw=70, gap=16, tot=n*bw+(n-1)*gap, x0=W/2-tot/2, y=236;
+  for(let i=0;i<n;i++){ const x=x0+i*(bw+gap), s=(i===C.sel), lit=(C.flash===i);
+    ctx.fillStyle=PCOLORS[i].hex; ctx.globalAlpha=lit?1:0.82; ctx.fillRect(x,y,bw,80); ctx.globalAlpha=1;
+    ctx.strokeStyle=lit?'#fff':(s?'#ff3':'#222'); ctx.lineWidth=s?4:2; ctx.strokeRect(x,y,bw,80);
+    txt(PCOLORS[i].name,x+bw/2,y+96,15,s?'#ff3':'#aaa','center'); }
+  txt(IS_TOUCH?'←→ えらぶ ・ 中央タップ: 押す ・ もどる: やりなおし':'←→ えらぶ  Z 押す  X やりなおし',W/2,H-32,14,'#888','center');
+  if(C.msgT>0){ ctx.globalAlpha=Math.min(1,C.msgT/30); txt(C.msg,W/2,H-60,18,'#f66','center'); ctx.globalAlpha=1; }
+}
+
+/* 温室: 鉢の 葉の かずを 左から 順に（4,2,6,3）*/
+function leafCodeCfg(){ return {
+  title:'温室の 錠', bg:'bg_ruins', code:[4,2,6,3],
+  riddle:['四つの 鉢の 葉の かず ──','左から、ならび 順に。'],
+  solved:['ことり ── 錠が はずれ、','おくへの 小道が、ひらいた。'],
+}; }
+/* 客間: 色を 番号の 小さい 順に（赤=3 青=1 緑=4 黄=2 → 青 黄 赤 緑）*/
+function colorRoomCfg(){ return {
+  title:'色の 錠', bg:'bg_factory', seq:[1,3,0,2],
+  riddle:['色を、番号の 小さい 順に 押せ。'],
+  solved:['カチ、カチ ── 四つの 色が そろい、','おくへの 戸が、ひらいた。'],
+}; }
+
 /* こうじょう: 番人の 錠前（記号 → 数字 → 右から左 で 読む）*/
 function codeLockCfg(){ return {
   title:'番人の 錠前', bg:'bg_factory', code:[1,4,1,9],
   riddle:['錠前に きざまれた しるし:','「 灰   火   歯   火 」','(しるしを 数字に なおし、右から 左へ 読め)'],
-  solved:['カチ、カチ、カチン ──','四つの 数字が そろい、錠前が ひらいた。','おくへの 道が、つうじた。'],
+  solved:['カチ、カチ、カチン ──','四つの しるし ── 火、水、歯、灰。','それは きみが たどって きた、\n 四つの 土地の あかし だった。','錠前が ひらき、おくへの 道が つうじた。'],
 }; }
 
 /* 光の 反射（劇場の おくの 鏡の 間）: 石像(鏡)を ぶつけて 回し、光を 紋章へ みちびく */
 function mirrorTempleCfg(){ return {
   title:'かがみの 間', bg:null, win:'light',
-  intro:['ほこりを かぶった、鏡の ような 石像が ならぶ 間。','おくの かべに、ひかりを まつ 紋章。','光は、まっすぐ しか 進めない。','『石像を まわして、ひかりの 道を つなげ』',
+  intro:['ほこりを かぶった、鏡の ような 石像が ならぶ 間。','おくの かべに、ひかりを まつ 紋章 ──\n よく 見ると、灰の 冠の かたちを している。','光は、まっすぐ しか 進めない。','『石像を まわして、王の 紋章を てらせ』',
     '(石像に ぶつかると むきが かわる。\n 光源の ひかりを、紋章 ✦ に 当てよう)'],
   hint:'石像に ぶつかると 回る。光を おりまげて 紋章へ。',
-  lockedMsg:'おくの 戸は、まだ ひらかない。\n紋章に、ひかりを 当てれば ひらく はず。',
-  solvedMsg:'紋章が まばゆく かがやき、おくの 戸が ひらいた!',
+  lockedMsg:'おくの 戸は、まだ ひらかない。\n灰冠の 紋章に、ひかりを 当てれば ひらく はず。',
+  solvedMsg:'灰冠の 紋章が かがやき、おくの 戸が ひらいた!',
   map:[
     '###########',
     '#>.../....#',
@@ -2217,13 +2272,18 @@ function buildStory(){
     ], saveAt:{x:110,y:200}, exitText:'みちの さきで、そよ風が ふわりと 形を むすんだ ──'}, 'ruins');
   BT('', 0); // そよ
   AF('', 0, ['そよは、かぜ ごと きえて しまった。','EXP が 入った。\nあたりの 風が、ぴたりと やんだ。'], ['そよは、まいあがって きえて いった。','かぜが、やさしく ほおを なでて いく。']);
-  WK('', puzzleLampsCfg, 'ruins');   // 謎解き①: ともしびの 点灯順
-  WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏／観察ギミック
+  WK('', puzzleLampsCfg, 'ruins');   // 謎解き①: ともしびの 点灯順 ──（戦闘 そよ の あと）
+  WK('まち跡の ろじうら', {title:'まち跡の ろじうら', bg:'bg_ruins',
+    npcs:[{x:330,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']}],
+    exitText:'みちの さきで、ねむそうな むしが\nまるく なって ねむって いる ──'}, 'ruins');
+  BT('', 1); // ネム
+  AF('', 1, ['ネムは、二どと おきなく なった。','EXP が 入った。\nゆめの あぶくが、しずかに きえた。'], ['ネムは、しあわせそうに ねむって いる。','おこさない ように、そっと とおった。']);
+  WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏 ──（戦闘 ネム の あと）
     initGst:()=>({fluteFound:false}),
     npcs:[
       {x:150,y:300,label:'ふるい 燭台',lines:['ろうの たれた、ふるい 燭台。','ただ、しずかに 立って いる。','(……とくに、しかけは なさそうだ)']},
       {x:480,y:310,label:'やぶれた 旗',lines:['色あせて、やぶれた 旗。','風も ないのに、かすかに ゆれた 気が した。','(……気のせい、だろうか)']},
-      {x:330,y:300,label:'壁画',lines:['かべに、おおきな 壁画。','うたう 人々と、ひとつの ふえ。','その下に、しらべが きざまれている ──','『ド ミ ソ ミ ド』','(うたう ものに、ふえを ──)']},
+      {x:330,y:300,label:'壁画',lines:['かべに、おおきな 壁画。','おとぎが ふえを ふき、まわりで\n ちいさな 子らが、すやすや ねむって いる。','『おちて きた 子らを ねむらせた、子守唄』','その下に、しらべ ── 『ド ミ ソ ミ ド』','(まち跡の 碑文と、おなじ しらべ だ。\n うたう ものに、ふえを ──)']},
     ],
     gimmicks:[
       {x:230,y:175,label:'口を あけた 石像',
@@ -2232,22 +2292,29 @@ function buildStory(){
           return {se:'save', lines:['石像は、口を ぽかんと あけている。','その おくに 手を いれて みると ──','「ほねの ふえ」を 手に いれた!','(壁画の しらべを、奏でて みよう)']}; } },
       {x:430,y:175,label:'ほこらの 扉', kind:'door',
         onConfirm:()=>{ if(hasItem('flute')) startMusic({title:'うたう ほこら', bg:'bg_ruins', song:[0,2,4,2,0],
-            solved:['ふえの しらべが、ほこらに ひびいた。','ゴゴ ── 扉が、ゆっくり ひらいて いく。']});
+            solved:['ふえの しらべ ── あの 子守唄が、ほこらに ひびいた。','── どこか とおくで、けむりが、\n  かすかに ふるえた 気が した。','ゴゴ ── 扉が、ゆっくり ひらいて いく。']});
           else { se('cancel'); say(['かたく とじた、ほこらの 扉。','まんなかに、ふえの 形の くぼみ。','(ふえが あれば、奏でられそうだ)'],()=>{state=ST.WALK;clearPressed();},true); } } },
     ],
     saveAt:{x:95,y:200},
     exitLocked:(g)=> '先へ つづく 道は、ほこらの 扉の おく。\n(壁画の しらべを、ふえで 奏でよう)',
     exitText:''}, 'ruins');
-  WK('まち跡の ろじうら', {title:'まち跡の ろじうら', bg:'bg_ruins',
-    npcs:[{x:330,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']}],
-    exitText:'みちの さきで、ねむそうな むしが\nまるく なって ねむって いる ──'}, 'ruins');
-  BT('', 1); // ネム
-  AF('', 1, ['ネムは、二どと おきなく なった。','EXP が 入った。\nゆめの あぶくが、しずかに きえた。'], ['ネムは、しあわせそうに ねむって いる。','おこさない ように、そっと とおった。']);
   WK('まち跡の おくみち', {title:'まち跡の おくみち', bg:'bg_ruins',
     npcs:[
       {x:200,y:180,label:'はりがみ',lines:['ふるい はりがみ。','『ヒトを 見たら にげろ。\n  ヒトは 世界を こわす もの なり』','その下に、ちいさな らくがき。\n 『でも、ともだちに なれるかも』']},
       {x:440,y:320,label:'ホネの あしあと',lines:['行ったり きたりした、ホネの あしあと。','だれかが くるのを、ずっと\n まちわびて いた みたいだ。']},
-    ], saveAt:{x:120,y:300}, exitText:'おくに ── ガタガタ ふるえる、ちいさな みはりが いる。'}, 'ruins');
+    ], saveAt:{x:120,y:300}, exitText:'みちは、ふるい 温室へと つづいて いる ──'}, 'ruins');
+  WK('わすれられた 温室', {title:'わすれられた 温室', bg:'bg_ruins',   // 葉の かずを 数える → 4桁コード ──（ボスの 前）
+    npcs:[
+      {x:140,y:300,label:'一の 鉢',lines:['ひからびた 鉢植え。','かれかけた 葉が、4まい のこって いる。']},
+      {x:270,y:325,label:'二の 鉢',lines:['ちいさな 鉢植え。','葉は、2まい だけ。']},
+      {x:400,y:300,label:'三の 鉢',lines:['大きな 鉢植え。','葉を かぞえると、6まい ある。']},
+      {x:530,y:325,label:'四の 鉢',lines:['かたむいた 鉢植え。','葉は、3まい。']},
+      {x:200,y:175,label:'かれた 立て札',lines:['土に ささった、立て札。','『水やりの 順は ── 鉢の 葉の かず。','  左の 鉢から、ならび 順に』']},
+    ],
+    gimmicks:[ {x:470,y:170,label:'温室の 錠', kind:'door', onConfirm:()=>startCodeLock(leafCodeCfg())} ],
+    saveAt:{x:95,y:200},
+    exitLocked:()=> '先へ つづく 小道は、四桁の 錠の おく。\n(鉢の 葉の かずを、左から 順に)',
+    exitText:'錠の おくに ── ガタガタ ふるえる、\nちいさな みはりが いる。'}, 'ruins');
   FN('', bossIntroHone);
   BT('', 2); // ホネくん
   AF('', 2, [
@@ -2270,6 +2337,19 @@ function buildStory(){
   BT('', 3); // カサ
   AF('', 3, ['カサは、しゅんと しぼんで きえた。','EXP が 入った。あまだれの 音が、やんだ。'], ['カサは、あまの むこうへ はねて いった。','かさの 下は、すこし あたたかかった。']);
   FN('', eventLostChild);   // 途中イベント: 迷子の こだまの 子
+  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // あえて 電気を 消す → 蓄光の 文字
+    initGst:()=>({lightsOff:false}),
+    glowText:['── うらぐちは、かべの むこう。','「あかりを 消した ものだけ、','   さきへ ゆける」'],
+    glowAt:{x:W/2,y:165},
+    npcs:[
+      {x:170,y:320,label:'明るい 壁',lines:['なにも ない、明るい 壁。','……でも よく 見ると、かすかに','なにか ぬった ような あとが ある。','(明るい ままでは、見えない?)']},
+      {x:480,y:320,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るすぎて、かえって なにも 見えない。']},
+    ],
+    gimmicks:[ {x:330,y:175,label:'照明の スイッチ', kind:'switch',
+      use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\nへやが 暗く なり、壁に みどりの 文字が 浮かぶ。':'パチン ── 照明を つけた。\n浮かんで いた 文字は、ふっと 消えた。']}; } } ],
+    saveAt:{x:100,y:200},
+    exitLocked:(g)=> g.lightsOff? null : 'まぶしくて、出口が どこにも 見えない。\n(おもいきって、あかりを 消して みては?)',
+    exitText:'蓄光の 文字に みちびかれ、\nかべの むこうの うらぐちへ すすんだ。'}, 'theater');
   WK('はいごの つうろ', {title:'はいごの つうろ', bg:null,
     npcs:[{x:330,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']}],
     exitText:'おくから、ぱちぱちと はくしゅの 音が\nきこえて くる ──'}, 'theater');
@@ -2304,16 +2384,15 @@ function buildStory(){
     ], saveAt:{x:115,y:190}, exitText:'水面から、しずかな せいが うかびあがった ──'}, 'water');
   BT('', 6); // シズク
   AF('', 6, ['シズクは、にごった まま はじけて きえた。','EXP が 入った。水面が、くらく しずまる。'], ['シズクの 水面は すきとおり、\nおだやかな あなたが うつって いた。']);
-  WK('', darkCaveCfg, 'water');   // ミニ演出: くらやみの みずみち
-  FN('', eventEcho);              // 途中イベント: とびいしの こだま
+  WK('', darkCaveCfg, 'water');   // ミニ演出: くらやみの みずみち ──（戦闘 シズク の あと）
   FN('', ()=>{ playTheme('water'); startPuzzle(keyDungeonCfg()); });   // ゼルダ風: 鍵と扉（古い 鍵を 入手）
-  FN('', ()=>{ playTheme('water'); startPuzzle(iceCaveCfg()); });      // 氷の床すべり（しっかり歯ごたえ）
-  FN('', ()=>{ playTheme('water'); startPuzzle(waterGateCfg()); });    // 水位の 上げ下げ（名物）
   WK('しずくの わたり', {title:'しずくの わたり', bg:'bg_water',
     npcs:[{x:330,y:250,label:'とびいし',lines:['水を わたる、ならんだ とびいし。','ひとつ ひとつ、ふむ たびに\n 水の おとが、こだまする。','「ホー」── どこかで、こえが かえった。']}],
     exitText:'おくで、おなじ こえが なんども\nこだまして いる ──'}, 'water');
   BT('', 7); // コダマ
   AF('', 7, ['コダマは、二どと こえを かえさなく なった。','EXP が 入った。ほらあなが、しんと 静まる。'], ['コダマは うれしそうに うたい、\nその こえは ほらあな じゅうに こだました。']);
+  FN('', ()=>{ playTheme('water'); startPuzzle(iceCaveCfg()); });      // 氷の床すべり ──（戦闘 コダマ の あと）
+  FN('', ()=>{ playTheme('water'); startPuzzle(waterGateCfg()); });    // 水位の 上げ下げ（名物）
   WK('しずくの おくみち', {title:'しずくの おくみち', bg:'bg_water',
     npcs:[
       {x:230,y:300,label:'ふるい いぬ小屋',lines:['ふるい いぬ小屋。','中に ボロボロの ボールと、しゃしん。','わらった おとぎの 子と、子どもの ワンダ。','うらに ── 『また あそぼうね』。']},
@@ -2339,15 +2418,27 @@ function buildStory(){
       {x:200,y:300,label:'けいじばん',lines:['きちんと した けいじばん。','『一、みだれを ゆるすな。\n  二、おそれを 入れるな。\n  三、すべてを、きちんと たもて』','番人 カクトの、おきて らしい。']},
       {x:460,y:200,label:'とまった 大時計',lines:['大きな 時計。はりは、とまっている。','とびらが しまった、あの 日の\n 時こくの まま だ。','じかんは、ここで とまって いる。']},
     ], saveAt:{x:115,y:190}, exitText:'おくの 通路は、みだれた 歯車に ふさがれている ──'}, 'factory');
-  FN('', ()=>{ playTheme('factory'); startPuzzle(sokobanFactoryCfg()); });   // 謎解き: 倉庫番
-  FN('', ()=>{ playTheme('factory'); startPuzzle(mirrorTempleCfg()); });     // 光の 反射（鏡を 回す）
+  FN('', ()=>{ playTheme('factory'); startPuzzle(sokobanFactoryCfg()); });   // 倉庫番 ──（探索の あと）
   BT('', 9); // ネジ
   AF('', 9, ['ネジは、ぜんまいが きれて、とまった。','EXP が 入った。行進の 音が、やんだ。'], ['ネジは、ねじを まいて もらって あんしんし、\nきちんと 敬礼して 行進して いった。']);
+  FN('', ()=>{ playTheme('factory'); startPuzzle(mirrorTempleCfg()); });     // 光の 反射 ──（戦闘 ネジ の あと）
   WK('ベルトコンベア', {title:'ベルトコンベア', bg:'bg_factory',
     npcs:[{x:330,y:250,label:'ながれる ぶひん',lines:['ベルトの 上を、ぶひんが ながれて いく。','どれも、きっちりと そろえられて いる。','ひとつ だけ ずれた ぶひんを、\n だれかが すぐ なおして いった。']}],
     exitText:'しゃっ、しゃっ ── ゆかを はわく\n音が、ちかづいて くる ──'}, 'factory');
   BT('', 10); // ホウキ
   AF('', 10, ['ホウキは、ほこりに かえって きえた。','EXP が 入った。ゆかに、ほこりが つもる。'], ['ホウキは、そうじを てつだって もらって\nごきげんに、すうっと きえた。']);
+  WK('色あわせの 間', {title:'色あわせの 間', bg:'bg_factory',   // 部屋じゅうから 色順を 集める → 色錠 ──（戦闘 ホウキ の あと）
+    npcs:[
+      {x:140,y:300,label:'赤い 塗料かん',lines:['たなの、赤い 塗料かん。','ラベルに、ちいさく 「3」。']},
+      {x:290,y:325,label:'青い 塗料かん',lines:['青い 塗料かん。','「1」と 書かれている。']},
+      {x:420,y:300,label:'緑の 塗料かん',lines:['緑の 塗料かん。','そこに、「4」の しるし。']},
+      {x:540,y:325,label:'黄の 塗料かん',lines:['黄いろの 塗料かん。','ふたの すみに、「2」。']},
+      {x:200,y:175,label:'作業の 手順',lines:['かべの、作業手順書。','『四つの 色を、番号の','  小さい 順に 押せ』']},
+    ],
+    gimmicks:[ {x:470,y:170,label:'色の 錠', kind:'door', onConfirm:()=>startColorLock(colorRoomCfg())} ],
+    saveAt:{x:95,y:200},
+    exitLocked:()=> '先へ つづく 戸は、四つの 色の 錠。\n(部屋の 色と 番号を 集め、小さい 順に)',
+    exitText:''}, 'factory');
   FN('', ()=>smokeStage(3));
 
   /* ===== 終盤: 広場 → とびら → カクト → ケムリ → 結末 ===== */
@@ -2504,6 +2595,21 @@ function drawWalk(){
         const bg=ctx.createRadialGradient(g.x,g.y-12,1,g.x,g.y-12,26); bg.addColorStop(0,'rgba(255,210,90,'+(a+0.15)+')'); bg.addColorStop(1,'rgba(255,210,90,0)');
         ctx.fillStyle=bg; ctx.beginPath(); ctx.arc(g.x,g.y-12+fl,26,0,7); ctx.fill(); } } }
   }
+  // あえて 電気を 消すと ── 蓄光の 文字が 浮かぶ（明るい ままでは 見えない）
+  if(c.glowText){
+    if(room.gst.lightsOff){
+      ctx.fillStyle='rgba(2,4,8,0.82)'; ctx.fillRect(20,108,W-40,H-118);   // 部屋を 暗く
+      const gl=0.55+Math.sin(Date.now()*0.005)*0.18; ctx.fillStyle='rgba(150,255,180,'+gl+')';
+      ctx.font='20px "Courier New",monospace'; ctx.textAlign='center';
+      const gx=c.glowAt?c.glowAt.x:W/2, gy=c.glowAt?c.glowAt.y:170;
+      c.glowText.forEach((ln,i)=>ctx.fillText(ln,gx,gy+i*30));
+      drawHeart(room.px,room.py,'#f55',7);                                 // 暗くても ハートは 見える
+      if(room.near&&room.near.type==='exit') txt('▶ 出口',W-44,H/2,15,'#9f9','center');
+      txt('(蓄光インク ── 暗くすると 浮かぶ 文字)',W/2,H-44,12,'#6a9','center');
+    } else {
+      txt('部屋が 明るすぎる。かべに、なにか 塗られた あとが…',W/2,96,13,'#998','center');
+    }
+  }
   // バナー
   if(roomBannerT>0){ ctx.globalAlpha=Math.min(1,roomBannerT/40); txt('── '+roomBanner+' ──',W/2,58,26,'#fff','center'); ctx.globalAlpha=1; }
   // 下部ヒント
@@ -2512,7 +2618,7 @@ function drawWalk(){
 
 /* =======================  戦闘  ======================= */
 let enemies=[],eIndex=0,enemy=null;
-const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle',CODELOCK:'codelock',MEMORY:'memory',MUSIC:'music'};
+const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle',CODELOCK:'codelock',MEMORY:'memory',MUSIC:'music',COLORLOCK:'colorlock'};
 let state=ST.TITLE;
 let menuIndex=0; const MENU=['たたかう','こうどう','どうぐ','みのがす'];
 let subType='',subIndex=0,subOptions=[];
@@ -3003,6 +3109,7 @@ function update(){
     case ST.CODELOCK: updateCodeLock(); break;
     case ST.MEMORY: updateMemory(); break;
     case ST.MUSIC: updateMusic(); break;
+    case ST.COLORLOCK: updateColorLock(); break;
     case ST.DIALOG:
       dialogTimer++;
       if(dialogShown<dialogText.length){ const vv=currentVoice();
@@ -3098,6 +3205,7 @@ function draw(){
     case ST.CODELOCK: drawCodeLock(); break;
     case ST.MEMORY: drawMemory(); break;
     case ST.MUSIC: drawMusic(); break;
+    case ST.COLORLOCK: drawColorLock(); break;
     case ST.ARGORCUT: drawArgorCut(); break;
     case ST.TUTORIAL: drawTutorial(); break;
     case ST.GAMEOVER: drawGameOver(); break;
