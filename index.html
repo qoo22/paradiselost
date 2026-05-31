@@ -1988,10 +1988,10 @@ function hiddenRoomScene(){
     'かべに、ちいさな 文字。\n『これは ぜんぶ、わすれられた おとぎたちが、',
     '  おちて きた 子の ために、のこした 火。\n  きみが だれかを 思った その ぶん だけ、\n  この へやは、あかるく なる』',
     '── おちて きた 子。\nその 文字を 見て、なぜか むねが、しんと した。',
-    'いちばん おくに、ちいさな ともしびが ひとつ。\nそっと 手に とると、こころが ほどけて いく。',
-    '(かくしの ともしびを 見つけた。\n HPが 全回復し、お守りに なった)',
-  ], ()=>{ player.hp=player.maxhp;
-    addItem({key:'memori',label:'ちいさな ともしび',desc:'隠しべやで 見つけた お守り。'});
+    'いちばん おくに、ちいさな ともしびが ひとつ。\nそっと 手に とると、まだ あたたかい。',
+    '(「ちいさな ともしび」を 手に いれた。\n どうぐ から、戦闘中に 1回だけ つかえる。\n つかうと HP が 全回復する ──\n  王との 戦いに、とっておこう)',
+  ], ()=>{ player.tomoshibi=true;
+    addItem({key:'memori',label:'ちいさな ともしび',desc:'戦闘中に 1回だけ つかえる 全回復。\n王との 戦いに とっておこう。'});
     state=ST.WALK; clearPressed(); }, {dark:0.3, fx:'light'});
 }
 
@@ -2161,11 +2161,11 @@ function drawColorLock(){
   if(C.msgT>0){ ctx.globalAlpha=Math.min(1,C.msgT/30); txt(C.msg,W/2,426,18,'#f77','center'); ctx.globalAlpha=1; }
 }
 
-/* 舞台裏: 蓄光記号「水 火 土 風」を 対応表(火=2,水=0,土=5,風=7)で 解読 → 0,2,5,7 */
+/* 舞台裏: 暗い ときだけ 光る 点の かず ①3 ②2 ③5 ④4 → 3254 */
 function darkCodeCfg(){ return {
-  title:'蓄光の 錠前', bg:null, code:[0,2,5,7],
-  riddle:['壁の 蓄光記号「水 火 土 風」を','対応表で 数字に なおして 入れよ。'],
-  solved:['カチ、カチ、カチン ──','蓄光の 記号が、四つの 数字に なった。','錠前が、しずかに ひらいた。'],
+  title:'蓄光の 錠前', bg:null, code:[3,2,5,4],
+  riddle:['暗い ときに 光った 点の かずを','①②③④の 順に 入れよ。'],
+  solved:['カチ、カチ、カチン ──','点の かずが、四つの 数字に なった。','錠前が、しずかに ひらいた。'],
 }; }
 /* 温室: 鉢の 葉の かずを 左から 順に（4,2,6,3）*/
 function leafCodeCfg(){ return {
@@ -2183,42 +2183,38 @@ function colorRoomCfg(){ return {
 /* こうじょう: 番人の 錠前（記号 → 数字 → 右から左 で 読む）*/
 function codeLockCfg(){ return {
   title:'番人の 錠前', bg:'bg_factory', code:[1,4,1,9],
-  riddle:['錠前に きざまれた しるし:','「 灰   火   歯   火 」','(しるしを 数字に なおし、右から 左へ 読め)'],
   solved:['カチ、カチ、カチン ──','四つの しるし ── 火、水、歯、灰。','それは きみが たどって きた、\n 四つの 土地の あかし だった。','錠前が ひらき、おくへの 道が つうじた。'],
 }; }
 
 /* 光の 反射（在マップ）: 石像(鏡)に 近づいて Z で 回し、光を 灰冠の 紋章へ */
 function mirrorTempleCfg(){ return makeStoneRoom({
   title:'かがみの 間', bg:null,
-  sign:['鏡の ような 石像が、四つ ならぶ 間。','おくの かべに、灰の 冠の 形の 紋章 ✦。','『四つの 石像を ぜんぶ 回して、','  光源 ◉ の ひかりを 紋章 ✦ へ つなげ』','(石像に 近づいて Z で 回す。光は まっすぐ。\n 正しい 向きは ひと通り だけ)'],
-  hint:'四つの 石像を Z で 回し、光を ジグザグに 紋章 ✦ へ。',
+  sign:['鏡の ような 石像が、六つ ならぶ 間。','おくの かべに、灰の 冠の 形の 紋章 ✦。','『六つの 石像を 回して、光源 ◉ の','  ひかりを ぐるりと まわし、紋章 ✦ へ』','(石像 ◇ に 近づいて Z で 回す。','  きいろい 光の 線を 見ながら、紋章へ つなげ。','  正しい 向きは ひと通り だけ)'],
+  hint:'六つの 石像 ◇ を Z で 回し、黄の 光線を 紋章 ✦ まで つなごう。',
   lockedText:'おくの 戸は まだ ひらかない。\n灰冠の 紋章に ひかりを 当てれば ひらく。',
   exitText:'灰冠の 紋章が かがやき、おくの 戸が ひらいた ──',
   map:[
-    '#############',
-    '#>......../.#',
-    '#...........#',
-    '#..\\....E...#',
-    '#...........#',
-    '#../......\\.#',
-    '#@.........D#',
+    '##############',
+    '#>........../#',
+    '#.\\......./..#',
+    '#....E....\\..#',
+    '#./.........\\#',
+    '#@...........#',
+    '#...........D#',
+    '##############',
   ],
 }); }
 
 /* 水位の 上げ下げ（しずくの 水門）: レバーで 水を 上げ下げ。低い道は 水位低で、深い水は 水位高で 渡れる */
 function waterGateCfg(){ return makeStoneRoom({
   title:'みずもんの ろう', bg:'bg_water', startHigh:false,
-  sign:['まがりくねった 水路。レバーが 三つ。','『低い道 ▦ は 水位が 低い とき、','  深い水 ~ は 水位が 高い とき だけ 渡れる。','  曲がる ごとに 水位を きりかえ、','  ▦と~を つかい分けて 奥の D へ』','(レバーに 近づいて Z で 上げ下げ。\n まちがえたら X／もどる で 初期位置へ)'],
-  hint:'低い道 ▦ と 深い水 ~ が 交互の 水路。レバーで 水位を かえ、通れる 道を つなごう。',
-  exitText:'まがりくねった 水路を こえ、おくへ すすんだ ──',
+  sign:['まっすぐ のびる 水路。道の 上に レバーが 三つ。','『低い道 ▦ は 水位が 低い とき、','  深い水 ~ は 水位が 高い とき だけ 渡れる。','  レバーの ところで 水位を きりかえ、','  ▦ と ~ を つかい分けて 右の D へ』','(レバーの 上で Z。 行き来 できるので 詰まない。\n まちがえても X／もどる で 初期位置へ)'],
+  hint:'▦低→(レバー上げ)→~深→(下げ)→▦低→(上げ)→~深→D。レバーは 道の 上。',
+  exitText:'水路を こえ、おくへ すすんだ ──',
   map:[
-    '#############',
-    '#@wwwwwwwwV.#',
-    '#~~~~~~~~~#~#',
-    '#wV#######w~#',
-    '#~~~~~~~~~ww#',
-    '#wwwwwwwwwVD#',
-    '#############',
+    '##############',
+    '#@wwV~~VwwV~D#',
+    '##############',
   ],
 }); }
 
@@ -2396,14 +2392,17 @@ function puzzleCheck(c){
     roomBanner = c.win==='light'?'紋章が、まばゆく かがやいた!' : (c.win==='key'?'扉の かぎが あいた!':'カチリ ── すべて はまった!');
     roomBannerT=120; }
 }
+function srBlocked(x,y,GC){ ctx.strokeStyle='rgba(225,90,90,0.5)'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+9,y+9); ctx.lineTo(x+GC-9,y+GC-9); ctx.moveTo(x+GC-9,y+9); ctx.lineTo(x+9,y+GC-9); ctx.stroke(); }
 function drawStoneRoom(c){
   const GC=c.GC, S=GC-7, wav=Math.sin(Date.now()*0.004)*1.5;
-  for(const t of c.low||[]){ const x=t.cx-GC/2,y=t.cy-GC/2;
-    if(room.gst.waterHigh){ ctx.fillStyle='#27506b'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#4f86ad'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+5,t.cy+wav); ctx.lineTo(x+GC-5,t.cy-wav); ctx.stroke(); }
-    else { ctx.fillStyle='#2a261c'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#5a513a'; ctx.lineWidth=1; ctx.strokeRect(x+4,y+4,GC-8,GC-8); } }
-  for(const t of c.deep||[]){ const x=t.cx-GC/2,y=t.cy-GC/2;
-    if(room.gst.waterHigh){ ctx.fillStyle='#1d5a86'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#6fb0d6'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+5,t.cy-wav); ctx.lineTo(x+GC-5,t.cy+wav); ctx.stroke(); }
-    else { ctx.fillStyle='#08090b'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#16181d'; ctx.strokeRect(x+2,y+2,GC-4,GC-4); } }
+  // 低い道 ▦ ── 水位が 低い ときだけ 通れる（通れる=明るい 石／通れない=しずんだ 水＋✕）
+  for(const t of c.low||[]){ const x=t.cx-GC/2,y=t.cy-GC/2, ok=!room.gst.waterHigh;
+    if(ok){ ctx.fillStyle='#6b5f44'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#9b8c63'; ctx.lineWidth=2; ctx.strokeRect(x+3,y+3,GC-6,GC-6); txt('▦',t.cx,t.cy-7,15,'#d8c790','center'); }
+    else { ctx.fillStyle='#1c3a52'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#356084'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+5,t.cy+wav); ctx.lineTo(x+GC-5,t.cy-wav); ctx.stroke(); srBlocked(x,y,GC); } }
+  // 深い水 ~ ── 水位が 高い ときだけ 渡れる
+  for(const t of c.deep||[]){ const x=t.cx-GC/2,y=t.cy-GC/2, ok=room.gst.waterHigh;
+    if(ok){ ctx.fillStyle='#2f7bac'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#7fc2e6'; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x+5,t.cy-wav); ctx.lineTo(x+GC-5,t.cy+wav); ctx.stroke(); txt('~',t.cx,t.cy-7,16,'#bfe6fb','center'); }
+    else { ctx.fillStyle='#0a0c12'; ctx.fillRect(x+2,y+2,GC-4,GC-4); ctx.strokeStyle='#1b2030'; ctx.strokeRect(x+2,y+2,GC-4,GC-4); srBlocked(x,y,GC); } }
   // 氷の床
   for(const t of c.ice||[]){ const x=t.cx-GC/2,y=t.cy-GC/2; ctx.fillStyle='#39424d'; ctx.fillRect(x+2,y+2,GC-4,GC-4);
     ctx.strokeStyle='#9fc4dd'; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x+6,y+GC-8); ctx.lineTo(x+GC-10,y+6); ctx.stroke(); }
@@ -2415,10 +2414,14 @@ function drawStoneRoom(c){
   for(const w of c.walls){ const x=w.cx-GC/2,y=w.cy-GC/2; ctx.fillStyle='#33312c'; ctx.fillRect(x+1,y+1,GC-2,GC-2); ctx.fillStyle='#46433b'; ctx.fillRect(x+1,y+1,GC-2,5); ctx.strokeStyle='#191815'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,GC-2,GC-2); }
   for(const p of c.plates){ const cov=room.gst.blocks.some(b=>Math.hypot(b.cx-p.cx,b.cy-p.cy)<13);
     ctx.strokeStyle=cov?'#fc3':'#7a7a7a'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(p.cx,p.cy,12,0,7); ctx.stroke(); ctx.beginPath(); ctx.arc(p.cx,p.cy,4,0,7); ctx.stroke(); }
-  // 光の ビーム ＋ 光源 ＋ 紋章
-  if(c.emitter){ const tb=traceBeamMap(c); ctx.strokeStyle='#ffe9a0'; ctx.lineWidth=3; ctx.globalAlpha=0.9;
-    for(const s of tb.segs){ ctx.beginPath(); ctx.moveTo(c.MX+s.i*GC,c.MY+s.j*GC); ctx.lineTo(c.MX+s.ni*GC,c.MY+s.nj*GC); ctx.stroke(); } ctx.globalAlpha=1;
-    const e=c.emitter; ctx.fillStyle='#ffd24a'; ctx.beginPath(); ctx.arc(e.cx,e.cy,11,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(e.cx,e.cy,5,0,7); ctx.fill(); }
+  // 光の ビーム ＋ 光源 ＋ 紋章（見やすく ── ふんわり 光る 太線＋脈動）
+  if(c.emitter){ const tb=traceBeamMap(c); const pulse=0.7+Math.sin(Date.now()*0.006)*0.25; ctx.lineCap='round';
+    ctx.strokeStyle='rgba(255,233,160,0.22)'; ctx.lineWidth=10; ctx.globalAlpha=pulse;
+    for(const s of tb.segs){ ctx.beginPath(); ctx.moveTo(c.MX+s.i*GC,c.MY+s.j*GC); ctx.lineTo(c.MX+s.ni*GC,c.MY+s.nj*GC); ctx.stroke(); }
+    ctx.globalAlpha=1; ctx.strokeStyle=tb.hit?'#fff0b0':'#ffe070'; ctx.lineWidth=4;
+    for(const s of tb.segs){ ctx.beginPath(); ctx.moveTo(c.MX+s.i*GC,c.MY+s.j*GC); ctx.lineTo(c.MX+s.ni*GC,c.MY+s.nj*GC); ctx.stroke(); }
+    ctx.lineCap='butt';
+    const e=c.emitter; ctx.fillStyle='#ffd24a'; ctx.beginPath(); ctx.arc(e.cx,e.cy,12,0,7); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(e.cx,e.cy,5,0,7); ctx.fill(); txt('◉ 光源',e.cx,e.cy+GC/2-4,11,'#ffd24a','center'); }
   if(c.emblem){ const e=c.emblem, hit=traceBeamMap(c).hit; ctx.strokeStyle=hit?'#ffe27a':'#888'; ctx.lineWidth=hit?3:2;
     ctx.beginPath(); ctx.arc(e.cx,e.cy,14,0,7); ctx.stroke();
     ctx.beginPath(); for(let a=0;a<6;a++){ const an=a/6*Math.PI*2-Math.PI/2,r=a%2?5:11,px=e.cx+Math.cos(an)*r,py=e.cy+Math.sin(an)*r; a?ctx.lineTo(px,py):ctx.moveTo(px,py);} ctx.closePath(); ctx.stroke();
@@ -2547,23 +2550,23 @@ function buildStory(){
     ], saveAt:{x:115,y:200}, exitText:'あまだれの 中、一本足の かさこぞうが はねて きた ──'}, 'theater');
   BT('', 3); // カサ
   AF('', 3, ['カサは、しゅんと しぼんで きえた。','EXP が 入った。あまだれの 音が、やんだ。'], ['カサは、あまの むこうへ はねて いった。','かさの 下は、すこし あたたかかった。']);
-  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // 明かりON=対応表 / OFF=蓄光の記号。覚えて 解読し 四桁錠へ
+  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // 明るいと 何も 見えない。消すと 蓄光の 点が 浮かぶ → 数えて 四桁錠へ
     initGst:()=>({lightsOff:false, unlocked:false}),
-    legendText:['【 明かりが ついて いる ときだけ 読める 対応表 】','火 = 2    水 = 0    土 = 5    風 = 7','(暗くすると 消える。おぼえて おこう)'],
-    glowText:['── 蓄光の 記号（暗い ときだけ 光る）──','水  火  土  風','(対応表で 数字に なおし、左から 錠前へ)'],
-    glowAt:{x:W/2,y:150},
+    glowText:['── 暗い ときだけ 光る、蓄光の 点 ──','①  ● ● ●            ②  ● ●','','③  ● ● ● ● ●        ④  ● ● ● ●','','(光る 点の かずを ①②③④の 順に 錠前へ)'],
+    glowAt:{x:W/2,y:140},
     npcs:[
-      {x:150,y:325,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るいと 壁の 蓄光記号が 見えず、','暗いと 対応表が 見えない。','(両方は いちどに 見られない ──\n  かたほうを おぼえる しか ない)']},
+      {x:150,y:325,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るすぎて、壁の あとが まったく 見えない。','(おもいきって 消せば、なにか 見える かも)']},
+      {x:330,y:325,label:'よごれた 壁',lines:['一面の、よごれた 壁。','明るい ときは ただの かべ。','……でも、かすかに 塗料の あとが ある。']},
     ],
     gimmicks:[
       {x:250,y:175,label:'照明の スイッチ', kind:'switch',
-        use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\n壁に みどりの 蓄光記号が 浮かぶ。':'パチン ── 照明を つけた。\n壁に 対応表が 見える。']}; } },
+        use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\n壁に、みどりに 光る 点が 浮かびあがる。':'パチン ── 照明を つけた。\n光る 点は、ふっと 消えた。']}; } },
       {x:440,y:175,label:'四桁の 錠前', kind:'door',
         onConfirm:()=>{ const cfg=darkCodeCfg(); cfg.after=()=>unlockRoom('蓄光の 錠が あいた!'); startCodeLock(cfg); } },
     ],
     saveAt:{x:90,y:200},
-    exitLocked:(g)=> g.unlocked? null : '出口は 四桁の 錠の おく。\n(明かりで 対応表を おぼえ、暗くして 記号を 読み、\n  数字に なおして 入力)',
-    exitText:'解読した 蓄光の 記号 ── うらぐちへ すすんだ。'}, 'theater');
+    exitLocked:(g)=> g.unlocked? null : '出口は 四桁の 錠の おく。\n(あかりを 消し、光る 点の かずを\n  ①②③④の 順に 数えて 入力)',
+    exitText:'蓄光の 点を 読みとき ── うらぐちへ すすんだ。'}, 'theater');
   WK('はいごの つうろ', {title:'はいごの つうろ', bg:null,
     npcs:[{x:330,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']}],
     exitText:'おくから、ぱちぱちと はくしゅの 音が\nきこえて くる ──'}, 'theater');
@@ -2677,10 +2680,11 @@ function buildStory(){
       {x:160,y:300,label:'しるし書き(一)',lines:['かべに かかった、木の ふだ。','『番人の しるし ──','  「火」は 一。「歯」は 四』']},
       {x:330,y:320,label:'しるし書き(二)',lines:['もう ひとつの 木の ふだ。','『番人の しるし ──','  「水」は 七。「灰」は 九』']},
       {x:490,y:300,label:'読み方の 注意',lines:['すりへった 注意書き。','『錠前の しるしは、','  右から 左へ 読む こと』']},
+      {x:330,y:240,label:'錠前の きざみ',lines:['四桁の 錠前。その おもてに、','四つの しるしが きざまれている ──','『 灰   火   歯   火 』','(木ふだの 対応で 数字に なおし、\n  右から 左へ 読んで、錠前へ)']},
     ],
     gimmicks:[ {x:330,y:165,label:'四桁の 錠前', kind:'door', onConfirm:()=>{ const cfg=codeLockCfg(); cfg.after=()=>unlockRoom('番人の 錠前が あいた!'); startCodeLock(cfg); }} ],
     saveAt:{x:100,y:200},
-    exitLocked:(g)=> g.unlocked? null : '先へ 行くには、錠前を とく ひつようが ある。\n(かべの 木ふだ 三つを 読んで、四桁を そろえよう)',
+    exitLocked:(g)=> g.unlocked? null : '先へ 行くには、錠前を とく ひつようが ある。\n(かべの 木ふだ と 錠前の きざみを 読んで)',
     exitText:'あいた 錠前の おくへ、あなたは すすんだ ──'}, 'factory');
   FN('', gateRoom);
   BT('', 11); // カクト
@@ -3257,7 +3261,10 @@ function chooseMenu(){ se('confirm'); const cmd=MENU[menuIndex];
 function openFightConfirm(){ subType='fconf'; subIndex=1; subOptions=['FIGHT する','やめる']; state=ST.SUB; clearPressed(); }
 function openSub(type){ subType=type; subIndex=0;
   if(type==='act')subOptions=enemy.acts.map(a=>a.label);
-  else if(type==='item')subOptions=player.candy>0?['いやしキャンディ ('+player.candy+')']:['（どうぐが ない）'];
+  else if(type==='item'){ subOptions=[];
+    if(player.candy>0) subOptions.push('いやしキャンディ ('+player.candy+')');
+    if(player.tomoshibi) subOptions.push('ちいさな ともしび（全回復・1回）');
+    if(!subOptions.length) subOptions=['（どうぐが ない）']; }
   else subOptions=['みのがす'+(enemy.spareReady?' ★':''),'にげる'];
   state=ST.SUB; clearPressed(); }
 function chooseSub(){ se('confirm');
@@ -3270,7 +3277,12 @@ function chooseSub(){ se('confirm');
     return; }
   if(subType==='act'){ const a=enemy.acts[subIndex]; if(a.effect)a.effect(enemy);
     const t=(typeof a.text==='function')?a.text(enemy):a.text; say(splitLines(t),()=>enemyTurn()); }
-  else if(subType==='item'){ if(player.candy>0){ player.candy--; se('heal'); const heal=10; player.hp=Math.min(player.maxhp,player.hp+heal);
+  else if(subType==='item'){ const opt=subOptions[subIndex]||'';
+    if(opt.indexOf('ちいさな ともしび')===0){ player.tomoshibi=false; inventory=inventory.filter(it=>it.key!=='memori'); se('save'); player.hp=player.maxhp;
+      const m=['ちいさな ともしびを、そっと かかげた。','あたたかい 光が、きずを すっかり いやした。','(HPが 全回復した！ ── ともしびは つかいきった)'];
+      if(enemy.final && !enemy.downed) m.push('王は、きみが 立ちあがるのを 待っている。\n せかしは しない。\n だが ── にがしも しない。');
+      say(m,()=>enemyTurn()); }
+    else if(opt.indexOf('いやしキャンディ')===0 && player.candy>0){ player.candy--; se('heal'); const heal=10; player.hp=Math.min(player.maxhp,player.hp+heal);
       const m=['いやしキャンディを たべた。','HPが '+heal+' かいふくした！'];
       if(enemy.final && !enemy.downed) m.push('王は、きみが 立ちあがるのを 待っている。\n せかしは しない。\n だが ── にがしも しない。');
       say(m,()=>enemyTurn()); }
@@ -3432,7 +3444,7 @@ function updateCut(){
     else { const a=cut.after; cut.after=null; if(a)a(); }
   }
 }
-function resetGame(){ Object.assign(player,{hp:20,maxhp:20,lv:1,exp:0,gold:0,candy:3,kills:0,spares:0});
+function resetGame(){ Object.assign(player,{hp:20,maxhp:20,lv:1,exp:0,gold:0,candy:3,kills:0,spares:0,tomoshibi:false});
   Object.assign(flags,{obeyedSmoke:false,seq:0,argorSpared:false}); inventory=[]; enemies=makeEnemies(); buildStory(); curPlace=''; eIndex=0; }
 
 function updateBulletPhase(){
