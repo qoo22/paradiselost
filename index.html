@@ -1619,29 +1619,31 @@ function afterHomura(){
 }
 /* =======================  途中の 謎解き・イベント（マンネリ防止）  ======================= */
 /* 謎解き①: ともしびを「ちいさい火 → 大きい火」の 順で ともす（まち跡）*/
+const LAMP_ORDER=[2,4,1,3];                   // 碑文が しめす 点灯順（gid）
 function lampUse(g, self){
   if(g.solved) return {lines:['すべての ともしびが、しずかに ゆれている。']};
   if(g.lit.includes(self.gid)) return {lines:['この ともしびは、もう ともって いる。']};
-  const need=g.lit.length+1;                 // 期待される 火の おおきさ（1→2→3）
-  if(self.size===need){ g.lit.push(self.gid);
-    if(g.lit.length>=3){ g.solved=true;
-      return {se:'save', lines:['ちいさな 火から、大きな 火へ ──','みっつの ともしびが、つぎつぎ ともった。','やみが はれ、おくへの みちが うかびあがる。','(わすれられた ともしびが、ひとつ よみがえった)']}; }
-    return {se:'heal', lines:['ぽっ、と ちいさく ともしびが ともった。']};
+  const need=LAMP_ORDER[g.lit.length];       // 次に ともすべき gid
+  if(self.gid===need){ g.lit.push(self.gid);
+    if(g.lit.length>=LAMP_ORDER.length){ g.solved=true;
+      return {se:'save', lines:['碑文の 順の とおりに、','よっつの ともしびが、つぎつぎ ともった。','やみが はれ、おくへの みちが うかびあがる。','(わすれられた ともしびが、ひとつ よみがえった)']}; }
+    return {se:'heal', lines:['ぽっ ── ともしびが、ともった。\n(碑文の 順は あって いる みたいだ)']};
   }
-  g.lit=[]; return {se:'cancel', lines:['ともしびは ついた かと おもうと、','ふっと、ぜんぶ きえて しまった。','……ともす 順番が、ちがった みたいだ。']};
+  g.lit=[]; return {se:'cancel', lines:['ともしびは ついた かと おもうと、','ふっと、ぜんぶ きえて しまった。','……ともす 順番が、ちがった みたいだ。\n(碑文を もう いちど 読もう)']};
 }
 function puzzleLampsCfg(){ return {
   title:'ともしびの ならび', bg:'bg_ruins', startX:60, startY:240,
   initGst:()=>({lit:[], solved:false}),
-  npcs:[{x:330,y:165,label:'いわの ほりもの',
-    lines:['いわに、ふるい ことばが きざまれている。','『ねむる 子らに 火を ともす ときは ──','  いちばん ちいさな 火から、','  いちばん 大きな 火へ、じゅんに』']}],
+  npcs:[{x:330,y:160,label:'いわの ほりもの',
+    lines:['いわに、ふるい 子守唄が きざまれている。','『ねむる 子らに、火を ともす 順 ──','  二ばんめ、四ばんめ、','  一ばんめ、三ばんめ、と』','(ともしびには、一〜四の 番号が ある)']}],
   gimmicks:[
-    {x:200,y:320,label:'ちいさな 火', kind:'lamp', gid:1, size:1, isOn:(g)=>g.lit.includes(1), use:lampUse},
-    {x:330,y:330,label:'なかくらいの 火', kind:'lamp', gid:2, size:2, isOn:(g)=>g.lit.includes(2), use:lampUse},
-    {x:460,y:320,label:'おおきな 火', kind:'lamp', gid:3, size:3, isOn:(g)=>g.lit.includes(3), use:lampUse},
+    {x:170,y:320,label:'一の火', kind:'lamp', gid:1, isOn:(g)=>g.lit.includes(1), use:lampUse},
+    {x:290,y:330,label:'二の火', kind:'lamp', gid:2, isOn:(g)=>g.lit.includes(2), use:lampUse},
+    {x:400,y:330,label:'三の火', kind:'lamp', gid:3, isOn:(g)=>g.lit.includes(3), use:lampUse},
+    {x:500,y:320,label:'四の火', kind:'lamp', gid:4, isOn:(g)=>g.lit.includes(4), use:lampUse},
   ],
-  saveAt:{x:110,y:185},
-  exitLocked:(g)=> g.solved? null : 'みちの さきは、ふかい やみに とざされている。\nともしびを 正しい 順で ともせば、\nひかりが みちを てらす はず。\n(いわの ほりものを 読んで みよう)',
+  saveAt:{x:90,y:185},
+  exitLocked:(g)=> g.solved? null : 'みちの さきは、ふかい やみに とざされている。\nともしびを 碑文の 順で ともせば、\nひかりが みちを てらす はず。\n(いわの ほりものを 読んで みよう)',
   exitText:'よみがえった ともしびに みちびかれ、\nあなたは おくへ すすんだ。',
 }; }
 
@@ -1753,12 +1755,13 @@ function tileCX(i){ return PUZ_OX+i*PUZ_T+PUZ_T/2; }
 function tileCY(j){ return PUZ_OY+j*PUZ_T+PUZ_T/2; }
 function gatesOpen(P){ return P.plates.length>0 && P.plates.every(p=>P.blocks.some(b=>b.i===p.i&&b.j===p.j)); }
 function buildPuzzleState(cfg){
-  const P={ cfg, walls:new Set(), floor:new Set(), plates:[], blocks:[], items:[], gates:[], door:null,
+  const P={ cfg, walls:new Set(), floor:new Set(), ice:new Set(), plates:[], blocks:[], items:[], gates:[], door:null,
             gx:0,gy:0, moveCD:0, opened:false, msg:'', msgT:0, after:cfg.after||advance };
   cfg.map.forEach((r,j)=>{ for(let i=0;i<r.length;i++){ const ch=r[i], k=i+','+j;
     if(ch==='#'){ P.walls.add(k); }
     else if(ch===' '){ /* void */ }
     else { P.floor.add(k); }                         // それ以外は すべて 床
+    if(ch==='I'||ch==='i'){ P.ice.add(k); }          // 氷の床（すべる）
     if(ch==='@'){ P.gx=i; P.gy=j; }
     else if(ch==='O'){ P.blocks.push({i,j}); }
     else if(ch==='*'){ P.plates.push({i,j}); }
@@ -1792,16 +1795,15 @@ function updatePuzzle(){
   let di=0,dj=0;
   if(keys.left)di=-1; else if(keys.right)di=1; else if(keys.up)dj=-1; else if(keys.down)dj=1;
   if(!di&&!dj) return;
-  const ni=P.gx+di, nj=P.gy+dj, nk=ni+','+nj;
-  const gateShut = P.gates.some(g=>g.i===ni&&g.j===nj) && !gatesOpen(P);
-  const onFloor = P.floor.has(nk)&&!P.walls.has(nk)&&!gateShut;
-  if(!onFloor){ se('cancel'); P.moveCD=6; return; }
+  const ni=P.gx+di, nj=P.gy+dj;
+  if(!puzCanEnter(P,ni,nj)){ se('cancel'); P.moveCD=6; return; }
   const b=P.blocks.find(x=>x.i===ni&&x.j===nj);
   if(b){                                             // 石を 押す
-    const bi=ni+di,bj=nj+dj,bk=bi+','+bj;
-    const canPush=P.floor.has(bk)&&!P.walls.has(bk)&&!P.blocks.some(x=>x.i===bi&&x.j===bj)&&!P.gates.some(g=>g.i===bi&&g.j===bj)&&!(P.door&&P.door.i===bi&&P.door.j===bj);
-    if(canPush){ b.i=bi;b.j=bj; P.gx=ni;P.gy=nj; P.moveCD=9;
-      const onPlate=P.plates.some(p=>p.i===bi&&p.j===bj); se(onPlate?'heal':'confirm');
+    const bi=ni+di,bj=nj+dj;
+    const free=(ti,tj)=>puzCanEnter(P,ti,tj)&&!P.blocks.some(x=>x.i===ti&&x.j===tj)&&!(P.door&&P.door.i===ti&&P.door.j===tj);
+    if(free(bi,bj)){ b.i=bi;b.j=bj; P.gx=ni;P.gy=nj; P.moveCD=9;
+      while(puzIsIce(P,b.i,b.j)){ const ti=b.i+di,tj=b.j+dj; if(free(ti,tj)){ b.i=ti;b.j=tj; } else break; }  // 氷の上は すべる
+      const onPlate=P.plates.some(p=>p.i===b.i&&p.j===b.j); se(onPlate?'heal':'confirm');
       checkOpen(P);
     } else { se('cancel'); P.moveCD=8; }
     return;
@@ -1811,18 +1813,29 @@ function updatePuzzle(){
     if(P.opened){ const af=P.after; puzzle=null; af&&af(); return; }
     se('cancel'); pMsg(P, P.cfg.lockedMsg||'とびらは、かたく とじている。'); P.moveCD=8; return;
   }
-  // 移動
+  // 移動（氷なら 壁／石に 当たるまで すべる）
   P.gx=ni;P.gy=nj; P.moveCD=6;
-  const it=P.items.find(t=>t.i===ni&&t.j===nj&&!t.got);
+  if(puzIsIce(P,P.gx,P.gy)){ P.moveCD=4;
+    while(puzIsIce(P,P.gx,P.gy)){ const ti=P.gx+di,tj=P.gy+dj;
+      if(puzCanEnter(P,ti,tj)&&!P.blocks.some(x=>x.i===ti&&x.j===tj)&&!(P.door&&P.door.i===ti&&P.door.j===tj)){ P.gx=ti;P.gy=tj; } else break; } }
+  const it=P.items.find(t=>t.i===P.gx&&t.j===P.gy&&!t.got);
   if(it){ it.got=true; addItem(it.item); se('save'); pMsg(P, it.item.label+'を 手に いれた!'); checkOpen(P); }
 }
+function puzCanEnter(P,i,j){ const k=i+','+j;
+  if(!P.floor.has(k)||P.walls.has(k)) return false;
+  if(P.gates.some(g=>g.i===i&&g.j===j)&&!gatesOpen(P)) return false;
+  return true; }
+function puzIsIce(P,i,j){ return P.ice.has(i+','+j); }
 function checkOpen(P){ if(!P.opened&&puzzleSolved(P)){ P.opened=true; se('save'); pMsg(P, P.cfg.solvedMsg||'カチリ ── とびらの かぎが あいた。'); } }
 function drawPuzzle(){
   const P=puzzle; if(!P)return;
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   if(P.cfg.bg&&IMG[P.cfg.bg]) drawImgCover(IMG[P.cfg.bg],0.86);
-  P.floor.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
-    ctx.fillStyle='#151515'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#272727'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,PUZ_T-2,PUZ_T-2); });
+  P.floor.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T,ice=P.ice.has(k);
+    if(ice){ ctx.fillStyle='#39424d'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2);
+      ctx.strokeStyle='#7fa6c4'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,PUZ_T-2,PUZ_T-2);
+      ctx.strokeStyle='#9fc4dd'; ctx.beginPath(); ctx.moveTo(x+6,y+PUZ_T-8); ctx.lineTo(x+PUZ_T-10,y+6); ctx.moveTo(x+PUZ_T-14,y+PUZ_T-7); ctx.lineTo(x+PUZ_T-7,y+PUZ_T-14); ctx.stroke(); }
+    else { ctx.fillStyle='#151515'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.strokeStyle='#272727'; ctx.lineWidth=1; ctx.strokeRect(x+1,y+1,PUZ_T-2,PUZ_T-2); } });
   P.walls.forEach(k=>{ const [i,j]=k.split(',').map(Number),x=PUZ_OX+i*PUZ_T,y=PUZ_OY+j*PUZ_T;
     ctx.fillStyle='#3b3b3b'; ctx.fillRect(x+1,y+1,PUZ_T-2,PUZ_T-2); ctx.fillStyle='#4d4d4d'; ctx.fillRect(x+1,y+1,PUZ_T-2,5); });
   { const gopen=gatesOpen(P); for(const g of P.gates){ const x=PUZ_OX+g.i*PUZ_T,y=PUZ_OY+g.j*PUZ_T;
@@ -1902,6 +1915,115 @@ function hiddenRoomScene(){
     addItem({key:'memori',label:'ちいさな ともしび',desc:'隠しべやで 見つけた お守り。'});
     state=ST.WALK; clearPressed(); }, {dark:0.3, fx:'light'});
 }
+
+/* =======================  暗号の 入力錠（ST.CODELOCK）  =======================
+   手がかりを 集め、記号を 数字に なおし、4桁を 入力する 推理パズル */
+let codelock=null;
+function startCodeLock(cfg){
+  codelock={ cfg, target:cfg.code, inp:cfg.code.map(()=>0), sel:0, msg:'', msgT:0, tries:0, after:cfg.after||advance };
+  state=ST.CODELOCK; clearPressed();
+}
+function updateCodeLock(){
+  const C=codelock; if(!C)return; if(C.msgT>0)C.msgT--;
+  if(consume('left')){ C.sel=(C.sel+C.inp.length-1)%C.inp.length; se('select'); }
+  if(consume('right')){ C.sel=(C.sel+1)%C.inp.length; se('select'); }
+  if(consume('up')){ C.inp[C.sel]=(C.inp[C.sel]+1)%10; se('select'); }
+  if(consume('down')){ C.inp[C.sel]=(C.inp[C.sel]+9)%10; se('select'); }
+  if(consume('cancel')){ se('cancel'); codelock=null; state=ST.WALK; clearPressed(); return; }   // 部屋へ もどる
+  if(consume('confirm')){
+    if(C.inp.every((d,i)=>d===C.target[i])){ se('save'); const af=C.after, cfg=C.cfg; codelock=null;
+      cutscene(cfg.bg||'title_bg', cfg.solved||['ガチャン ── 錠が、ひらいた。'], ()=>af&&af(), {dark:0.5}); }
+    else { se('cancel'); C.tries++; C.msg=(C.tries>=3?'ちがう……手がかりを もう いちど?':'ちがう みたいだ……'); C.msgT=140; }
+  }
+}
+function drawCodeLock(){
+  const C=codelock; if(!C)return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(C.cfg.bg&&IMG[C.cfg.bg]) drawImgCover(IMG[C.cfg.bg],0.85);
+  txt(C.cfg.title||'暗号の 錠',W/2,72,26,'#fff','center');
+  if(C.cfg.riddle){ for(let i=0;i<C.cfg.riddle.length;i++) txt(C.cfg.riddle[i],W/2,116+i*24,16,'#d9c98a','center'); }
+  const n=C.inp.length, bw=60, gap=14, tot=n*bw+(n-1)*gap, x0=W/2-tot/2, y=288;
+  for(let i=0;i<n;i++){ const x=x0+i*(bw+gap), s=(i===C.sel);
+    ctx.strokeStyle=s?'#ff3':'#888'; ctx.lineWidth=s?3:2; ctx.strokeRect(x,y,bw,72);
+    if(s){ txt('▲',x+bw/2,y-8,16,'#ff3','center'); txt('▼',x+bw/2,y+90,16,'#ff3','center'); }
+    txt(''+C.inp[i],x+bw/2,y+50,38,s?'#fff':'#ccc','center'); }
+  txt(IS_TOUCH?'十字キー: えらぶ／まわす ・ 中央タップ: けってい ・ もどる: 戻る':'←→ えらぶ  ↑↓ まわす  Z けってい  X もどる',W/2,H-34,14,'#888','center');
+  if(C.msgT>0){ ctx.globalAlpha=Math.min(1,C.msgT/30); txt(C.msg,W/2,H-62,18,'#f66','center'); ctx.globalAlpha=1; }
+}
+
+/* =======================  記憶（サイモン）パズル ST.MEMORY  =======================
+   こだまが ひびく 順を 覚えて、同じ 順に 火を なぞる */
+let memg=null;
+const MEM_FREQ=[523,659,784,988,1175];
+function memTone(i){ if(!AC||muted)return; blip(MEM_FREQ[i%MEM_FREQ.length],0.22,'triangle',0.4,AC.currentTime); }
+function startMemory(cfg){
+  memg={ cfg, n:cfg.lamps||4, len:cfg.len||5, seq:[], phase:'show', showIdx:0, showT:34, flash:-1, flashT:0, sel:0, inp:[], after:cfg.after||advance, msg:'', msgT:0 };
+  for(let i=0;i<memg.len;i++) memg.seq.push((Math.random()*memg.n)|0);
+  state=ST.MEMORY; clearPressed();
+}
+function memReplay(M){ M.phase='show'; M.showIdx=0; M.flash=-1; M.showT=40; M.inp=[]; }
+function updateMemory(){
+  const M=memg; if(!M)return; if(M.msgT>0)M.msgT--; if(M.flashT>0){ M.flashT--; if(M.flashT===0&&M.phase==='input')M.flash=-1; }
+  if(M.phase==='show'){
+    if(M.showT>0){ M.showT--; if(M.showT===0){
+      if(M.flash<0){ M.flash=M.seq[M.showIdx]; memTone(M.flash); M.showT=28; }
+      else { M.flash=-1; M.showIdx++; if(M.showIdx>=M.seq.length){ M.phase='input'; M.inp=[]; M.msg='同じ 順に なぞれ'; M.msgT=80; } else M.showT=14; } } }
+    return; }
+  // 入力
+  if(consume('left')){ M.sel=(M.sel+M.n-1)%M.n; se('select'); }
+  if(consume('right')){ M.sel=(M.sel+1)%M.n; se('select'); }
+  if(consume('cancel')){ se('cancel'); M.msg='もう いちど 見せる…'; M.msgT=80; memReplay(M); return; }
+  if(consume('confirm')){ M.flash=M.sel; M.flashT=14; memTone(M.sel); M.inp.push(M.sel);
+    const i=M.inp.length-1;
+    if(M.inp[i]!==M.seq[i]){ se('hurt'); M.msg='ちがう! もう いちど。'; M.msgT=110; memReplay(M); return; }
+    if(M.inp.length===M.seq.length){ se('spare'); const af=M.after, cfg=M.cfg; memg=null;
+      cutscene(cfg.bg||'title_bg', cfg.solved||['こだまが、よろこぶ ように ひびいた。'], ()=>af&&af(), {dark:0.5}); return; }
+  }
+}
+function drawMemory(){
+  const M=memg; if(!M)return;
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  if(M.cfg.bg&&IMG[M.cfg.bg]) drawImgCover(IMG[M.cfg.bg],0.82);
+  txt(M.cfg.title||'こだまの 試練',W/2,70,25,'#fff','center');
+  txt(M.phase==='show'?'…こだまを よく きいて…':'同じ 順に なぞろう',W/2,108,16,'#cda','center');
+  const n=M.n, r=40, gap=30, tot=n*(r*2)+(n-1)*gap, x0=W/2-tot/2+r, y=250;
+  for(let i=0;i<n;i++){ const x=x0+i*(r*2+gap); const lit=(M.flash===i); const seld=(M.phase==='input'&&M.sel===i);
+    ctx.beginPath(); ctx.arc(x,y,r,0,7);
+    ctx.fillStyle=lit?'#ffe27a':'#2c2c2c'; ctx.fill();
+    ctx.strokeStyle=lit?'#fff':(seld?'#ff3':'#777'); ctx.lineWidth=seld?4:2; ctx.stroke();
+    if(lit){ ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(x,y,r*0.4,0,7); ctx.fill(); }
+    txt(''+(i+1),x,y+r+22,16,seld?'#ff3':'#888','center'); }
+  // 進捗
+  if(M.phase==='input'){ txt('のこり '+(M.seq.length-M.inp.length),W/2,y+r+58,15,'#999','center'); }
+  txt(IS_TOUCH?'←→ えらぶ ・ 中央タップ: ともす ・ もどる: もう いちど 見る':'←→ えらぶ  Z ともす  X もう いちど 見る',W/2,H-32,14,'#888','center');
+  if(M.msgT>0){ ctx.globalAlpha=Math.min(1,M.msgT/30); txt(M.msg,W/2,H-60,18,M.msg[0]==='ち'?'#f66':'#fc6','center'); ctx.globalAlpha=1; }
+}
+
+/* こうじょう: 番人の 錠前（記号 → 数字 → 右から左 で 読む）*/
+function codeLockCfg(){ return {
+  title:'番人の 錠前', bg:'bg_factory', code:[1,4,1,9],
+  riddle:['錠前に きざまれた しるし:','「 灰   火   歯   火 」','(しるしを 数字に なおし、右から 左へ 読め)'],
+  solved:['カチ、カチ、カチン ──','四つの 数字が そろい、錠前が ひらいた。','おくへの 道が、つうじた。'],
+}; }
+
+/* 氷の床（ほらあな おく）: 石は すべり出すと 壁か べつの 石に 当たるまで 止まらない */
+function iceCaveCfg(){ return {
+  title:'こおりの ひろば', bg:'bg_water', win:'plates',
+  intro:['おくの ひろばは、いちめんの 氷。','ふみだすと、つるりと すべって いく。','『氷の 上の ものは ── 何かに ぶつかるまで、止まれない』',
+    '(石を 氷へ 押すと、壁や 石に 当たるまで すべる。\n ふたつの みぞ ○に、石を ぴたりと 止めよう)'],
+  hint:'氷では 自分も 石も すべる。止まる 位置を 読もう。',
+  lockedMsg:'氷の おくの 戸は、まだ ひらかない。\nふたつの みぞを、石で うめれば ひらく はず。',
+  solvedMsg:'ピシ ── 氷が しまり、おくの 戸が ひらいた!',
+  map:[
+    '###########',
+    '#@..IIII*.#',
+    '#.O.IIII..#',
+    '#...IIII..#',
+    '#..*IIIIO.#',
+    '#........D#',
+    '###########',
+  ],
+}; }
 
 function buildStory(){
   STORY=[];
@@ -1987,7 +2109,9 @@ function buildStory(){
     npcs:[
       {x:230,y:320,label:'がくやの かがみ',lines:['われた がくやの かがみ。','すみに れんしゅうの あと。','『笑え。客が ひとりでも、\n  スターは わらう もの』']},
       {x:450,y:180,label:'スポットライト',lines:['ほこりを かぶった、スポットライト。','まだ、ひとつ だけ ついている。','だれかが、まだ おどって いる らしい。']},
-    ], saveAt:{x:120,y:200}, exitText:'スポットライトの 中で ── だれかが、おどっている。'}, 'theater');
+    ], saveAt:{x:120,y:200}, exitText:'ぶたいの おくで ── こだまが、ひかりと 音で\nなにかを つたえようと している。'}, 'theater');
+  FN('', ()=>{ playTheme('theater'); startMemory({title:'こだまの 試練', bg:'title_bg', lamps:4, len:5,
+    solved:['こだまたちが、よろこんで ひびきあった。','「おぼえて いて くれて、ありがとう」','スポットライトの おくへの 道が、ひらいた。']}); });   // 記憶(サイモン)
   FN('', bossIntroKirari);
   BT('', 5); // キラリ
   AF('', 5, [
@@ -2013,6 +2137,7 @@ function buildStory(){
   WK('', darkCaveCfg, 'water');   // ミニ演出: くらやみの みずみち
   FN('', eventEcho);              // 途中イベント: とびいしの こだま
   FN('', ()=>{ playTheme('water'); startPuzzle(keyDungeonCfg()); });   // ゼルダ風: 鍵と扉（古い 鍵を 入手）
+  FN('', ()=>{ playTheme('water'); startPuzzle(iceCaveCfg()); });      // 氷の床すべり（しっかり歯ごたえ）
   WK('しずくの わたり', {title:'しずくの わたり', bg:'bg_water',
     npcs:[{x:330,y:250,label:'とびいし',lines:['水を わたる、ならんだ とびいし。','ひとつ ひとつ、ふむ たびに\n 水の おとが、こだまする。','「ホー」── どこかで、こえが かえった。']}],
     exitText:'おくで、おなじ こえが なんども\nこだまして いる ──'}, 'water');
@@ -2055,6 +2180,16 @@ function buildStory(){
 
   /* ===== 終盤: 広場 → とびら → カクト → ケムリ → 結末 ===== */
   FN('わすれられた 広場', plazaRoom);
+  WK('番人の 錠前', {title:'番人の 錠前', bg:'bg_factory',   // 暗号・推理の 入力錠
+    npcs:[
+      {x:160,y:300,label:'しるし書き(一)',lines:['かべに かかった、木の ふだ。','『番人の しるし ──','  「火」は 一。「歯」は 四』']},
+      {x:330,y:320,label:'しるし書き(二)',lines:['もう ひとつの 木の ふだ。','『番人の しるし ──','  「水」は 七。「灰」は 九』']},
+      {x:490,y:300,label:'読み方の 注意',lines:['すりへった 注意書き。','『錠前の しるしは、','  右から 左へ 読む こと』']},
+    ],
+    gimmicks:[ {x:330,y:165,label:'四桁の 錠前', kind:'door', onConfirm:()=>startCodeLock(codeLockCfg())} ],
+    saveAt:{x:100,y:200},
+    exitLocked:()=> '先へ 行くには、錠前を とく ひつようが ある。\n(かべの 木ふだ 三つを 読んで、四桁を そろえよう)',
+    exitText:''}, 'factory');
   FN('', gateRoom);
   BT('', 11); // カクト
   /* ===== 最終ステージ: とびらの おく → 玉座の間 ── 灰冠の王 アルゴール ===== */
@@ -2113,9 +2248,11 @@ function updateWalk(){
   if(room.px>exitX-10){ room.near={type:'exit'}; }
   if(consume('confirm') && room.near){
     if(room.near.type==='npc'){ se('confirm'); say(splitLines(room.near.obj.lines.join('\n')),()=>{state=ST.WALK;clearPressed();},true); }
-    else if(room.near.type==='gimmick'){ const g=room.near.obj; const r=(g.use?g.use(room.gst,g):null)||{};
-      se(r.se||'confirm'); const lines=r.lines||g.lines||['…'];
-      say(splitLines(lines.join('\n')),()=>{state=ST.WALK;clearPressed(); if(r.then)r.then();},true); }
+    else if(room.near.type==='gimmick'){ const g=room.near.obj;
+      if(g.onConfirm){ se('confirm'); g.onConfirm(); }
+      else { const r=(g.use?g.use(room.gst,g):null)||{};
+        se(r.se||'confirm'); const lines=r.lines||g.lines||['…'];
+        say(splitLines(lines.join('\n')),()=>{state=ST.WALK;clearPressed(); if(r.then)r.then();},true); } }
     else if(room.near.type==='save'){ se('save'); doSave(); }
     else if(room.near.type==='exit'){ const lock = c.exitLocked? c.exitLocked(room.gst): null;
       if(lock){ se('cancel'); say(splitLines(lock),()=>{state=ST.WALK;clearPressed();},true); }
@@ -2203,7 +2340,7 @@ function drawWalk(){
 
 /* =======================  戦闘  ======================= */
 let enemies=[],eIndex=0,enemy=null;
-const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle'};
+const ST={TITLE:'title',CUT:'cut',WALK:'walk',MENU:'menu',SUB:'sub',FIGHTBAR:'fightbar',DIALOG:'dialog',ENEMY:'enemy',RESULT:'result',GAMEOVER:'gameover',ARGORCUT:'argorcut',TUTORIAL:'tutorial',PUZZLE:'puzzle',CODELOCK:'codelock',MEMORY:'memory'};
 let state=ST.TITLE;
 let menuIndex=0; const MENU=['たたかう','こうどう','どうぐ','みのがす'];
 let subType='',subIndex=0,subOptions=[];
@@ -2691,6 +2828,8 @@ function update(){
     case ST.CUT: updateCut(); break;
     case ST.WALK: updateWalk(); break;
     case ST.PUZZLE: updatePuzzle(); break;
+    case ST.CODELOCK: updateCodeLock(); break;
+    case ST.MEMORY: updateMemory(); break;
     case ST.DIALOG:
       dialogTimer++;
       if(dialogShown<dialogText.length){ const vv=currentVoice();
@@ -2783,6 +2922,8 @@ function draw(){
     case ST.CUT: drawCut(); break;
     case ST.WALK: drawWalk(); break;
     case ST.PUZZLE: drawPuzzle(); break;
+    case ST.CODELOCK: drawCodeLock(); break;
+    case ST.MEMORY: drawMemory(); break;
     case ST.ARGORCUT: drawArgorCut(); break;
     case ST.TUTORIAL: drawTutorial(); break;
     case ST.GAMEOVER: drawGameOver(); break;
