@@ -1610,32 +1610,29 @@ function afterHomura(){
     'ともしびの あかりが、きみの 行く さきを\n やわらかく てらして いる。'],()=>advance(),{dark:0.4,sprite:'char_homura'}); }
 }
 /* =======================  途中の 謎解き・イベント（マンネリ防止）  ======================= */
-/* 謎解き①: ともしびを「ちいさい火 → 大きい火」の 順で ともす（まち跡）*/
-const LAMP_ORDER=[2,4,1,3];                   // 碑文が しめす 点灯順（gid）
+/* 謎解き①: ともしびの ライツアウト ── 火を ともすと 両どなりも 入れかわる。ぜんぶ ともせ（まち跡）*/
 function lampUse(g, self){
-  if(g.solved) return {lines:['すべての ともしびが、しずかに ゆれている。']};
-  if(g.lit.includes(self.gid)) return {lines:['この ともしびは、もう ともって いる。']};
-  const need=LAMP_ORDER[g.lit.length];       // 次に ともすべき gid
-  if(self.gid===need){ g.lit.push(self.gid);
-    if(g.lit.length>=LAMP_ORDER.length){ g.solved=true;
-      return {se:'save', lines:['碑文の 順の とおりに、','よっつの ともしびが、つぎつぎ ともった。','やみが はれ、おくへの みちが うかびあがる。','(わすれられた ともしびが、ひとつ よみがえった)']}; }
-    return {se:'heal', lines:['ぽっ ── ともしびが、ともった。\n(碑文の 順は あって いる みたいだ)']};
-  }
-  g.lit=[]; return {se:'cancel', lines:['ともしびは ついた かと おもうと、','ふっと、ぜんぶ きえて しまった。','……ともす 順番が、ちがった みたいだ。\n(碑文を もう いちど 読もう)']};
+  const N=5; const id=self.gid;            // gid:1..5
+  for(const t of [id-1, id, id+1]){ if(t>=1&&t<=N){
+    if(g.lit.includes(t)) g.lit=g.lit.filter(x=>x!==t); else g.lit.push(t); } }
+  if(g.lit.length>=N && !g.solved){ g.solved=true;
+    return {se:'save', lines:['ぱぁっ ── 五つの ともしびが、','いっせいに ともった!','やみが はれ、おくへの みちが うかびあがる。','(わすれられた ともしびが、よみがえった)']}; }
+  return {se:'select', lines:['ぽっ ── 火が ゆれ、両どなりの 火も\n つられて 入れかわった。']};
 }
 function puzzleLampsCfg(){ return {
   title:'ともしびの ならび', bg:'bg_ruins', startX:60, startY:240,
-  initGst:()=>({lit:[], solved:false}),
-  npcs:[{x:330,y:160,label:'いわの ほりもの',
-    lines:['いわに、ふるい 子守唄が きざまれている。','『ねむる 子らに、火を ともす 順 ──','  二ばんめ、四ばんめ、','  一ばんめ、三ばんめ、と』','(ともしびには、一〜四の 番号が ある)']}],
+  initGst:()=>({lit:[], solved:false}),   // 全消灯から スタート（解: 一と四、または 二と五 を ともす）
+  npcs:[{x:330,y:150,label:'いわの ほりもの',
+    lines:['いわに、ふるい ことばが きざまれている。','『この 火は、ひとつ ともすと','  すぐ 両どなりの 火も、ゆれて 入れかわる。','  五つ すべてを、いちどに ともせ』','(どれか 二つを えらんで ともせば いい?)']}],
   gimmicks:[
-    {x:170,y:320,label:'一の火', kind:'lamp', gid:1, isOn:(g)=>g.lit.includes(1), use:lampUse},
-    {x:290,y:330,label:'二の火', kind:'lamp', gid:2, isOn:(g)=>g.lit.includes(2), use:lampUse},
-    {x:400,y:330,label:'三の火', kind:'lamp', gid:3, isOn:(g)=>g.lit.includes(3), use:lampUse},
-    {x:500,y:320,label:'四の火', kind:'lamp', gid:4, isOn:(g)=>g.lit.includes(4), use:lampUse},
+    {x:140,y:325,label:'一の火', kind:'lamp', gid:1, isOn:(g)=>g.lit.includes(1), use:lampUse},
+    {x:255,y:330,label:'二の火', kind:'lamp', gid:2, isOn:(g)=>g.lit.includes(2), use:lampUse},
+    {x:365,y:330,label:'三の火', kind:'lamp', gid:3, isOn:(g)=>g.lit.includes(3), use:lampUse},
+    {x:475,y:330,label:'四の火', kind:'lamp', gid:4, isOn:(g)=>g.lit.includes(4), use:lampUse},
+    {x:560,y:325,label:'五の火', kind:'lamp', gid:5, isOn:(g)=>g.lit.includes(5), use:lampUse},
   ],
   saveAt:{x:90,y:185},
-  exitLocked:(g)=> g.solved? null : 'みちの さきは、ふかい やみに とざされている。\nともしびを 碑文の 順で ともせば、\nひかりが みちを てらす はず。\n(いわの ほりものを 読んで みよう)',
+  exitLocked:(g)=> g.solved? null : 'みちの さきは、ふかい やみ。\n五つの ともしびを すべて ともせば、\nひかりが みちを てらす はず。\n(火は ともすと 両どなりも 入れかわる)',
   exitText:'よみがえった ともしびに みちびかれ、\nあなたは おくへ すすんだ。',
 }; }
 
@@ -1946,17 +1943,18 @@ function drawPuzzle(){
 /* 倉庫番（こうじょう）: 部品の 石を ぜんぶ みぞ(スイッチ)へ */
 function sokobanFactoryCfg(){ return makeStoneRoom({
   title:'ぶひんの みぞ', bg:'bg_factory',
-  sign:['作業場の 立て札。','『三つの 部品(石 ▣)を、みぞ ○へ。','  通り道は、まんなかの すきま 一つだけ。','  順番を まちがえると、はまらない』','(石は 押す ことしか できない。\n まちがえたら X／もどる で やり直し)'],
-  hint:'三つの 石 ▣ を、せまい すきまから 順に みぞ ○へ。X でやり直し。',
-  lockedText:'おくの 戸は びくとも しない。\nみっつの 石を すべて みぞに はめれば ひらく。',
-  exitText:'みっつの みぞが はまり、おくへの 戸が ひらいた ──',
+  sign:['しきり壁の ある、作業場。','『四つの 部品(石 ▣)を、','  四つの みぞ ○へ それぞれ はめよ。','  石は 押す ことしか できない ──','  かどに 押しこむと、二どと もどせない』','(まちがえたら X／もどる で 初期位置へ)'],
+  hint:'四つの 石 ▣ を、四つの みぞ ○へ。かど に 入れると 詰む。X でやり直し。',
+  lockedText:'おくの 戸は びくとも しない。\n四つの 石を すべて みぞに はめれば ひらく。',
+  exitText:'四つの みぞが はまり、おくへの 戸が ひらいた ──',
   map:[
     '############',
-    '#@..#......#',
-    '#.O.#..*...#',
-    '#.O....*...#',
-    '#.O.#..*...#',
-    '#...#.....D#',
+    '#..#.....#.#',
+    '#.O...O....#',
+    '#..*.##.*..#',
+    '#....##....#',
+    '#.O*....*O.#',
+    '#@.......#D#',
     '############',
   ],
 }); }
@@ -2163,6 +2161,12 @@ function drawColorLock(){
   if(C.msgT>0){ ctx.globalAlpha=Math.min(1,C.msgT/30); txt(C.msg,W/2,426,18,'#f77','center'); ctx.globalAlpha=1; }
 }
 
+/* 舞台裏: 蓄光記号「水 火 土 風」を 対応表(火=2,水=0,土=5,風=7)で 解読 → 0,2,5,7 */
+function darkCodeCfg(){ return {
+  title:'蓄光の 錠前', bg:null, code:[0,2,5,7],
+  riddle:['壁の 蓄光記号「水 火 土 風」を','対応表で 数字に なおして 入れよ。'],
+  solved:['カチ、カチ、カチン ──','蓄光の 記号が、四つの 数字に なった。','錠前が、しずかに ひらいた。'],
+}; }
 /* 温室: 鉢の 葉の かずを 左から 順に（4,2,6,3）*/
 function leafCodeCfg(){ return {
   title:'温室の 錠', bg:'bg_ruins', code:[4,2,6,3],
@@ -2204,14 +2208,17 @@ function mirrorTempleCfg(){ return makeStoneRoom({
 /* 水位の 上げ下げ（しずくの 水門）: レバーで 水を 上げ下げ。低い道は 水位低で、深い水は 水位高で 渡れる */
 function waterGateCfg(){ return makeStoneRoom({
   title:'みずもんの ろう', bg:'bg_water', startHigh:false,
-  sign:['水門の 立て札。レバーが 三つ。','『低い道 ▦ は 水位が 低い とき、','  深い水 ~ は 水位が 高い とき 渡れる。','  上げ → 下げ → 上げ と 三度 切りかえて わたれ』','(レバーに 近づいて Z で 水位を 上げ下げ)'],
-  hint:'▦低い→(上げ)→~深い→(下げ)→▦低い→(上げ)→~深い→出口。三度 切りかえ。',
-  exitText:'三つの 水門を こえ、おくへ すすんだ ──',
+  sign:['まがりくねった 水路。レバーが 三つ。','『低い道 ▦ は 水位が 低い とき、','  深い水 ~ は 水位が 高い とき だけ 渡れる。','  曲がる ごとに 水位を きりかえ、','  ▦と~を つかい分けて 奥の D へ』','(レバーに 近づいて Z で 上げ下げ。\n まちがえたら X／もどる で 初期位置へ)'],
+  hint:'低い道 ▦ と 深い水 ~ が 交互の 水路。レバーで 水位を かえ、通れる 道を つなごう。',
+  exitText:'まがりくねった 水路を こえ、おくへ すすんだ ──',
   map:[
-    '##############',
-    '#@ww.~~.ww.~D#',
-    '####V##V##V###',
-    '##############',
+    '#############',
+    '#@wwwwwwwwV.#',
+    '#~~~~~~~~~#~#',
+    '#wV#######w~#',
+    '#~~~~~~~~~ww#',
+    '#wwwwwwwwwVD#',
+    '#############',
   ],
 }); }
 
@@ -2480,9 +2487,12 @@ function buildStory(){
   WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏 ──（戦闘 ネム の あと）
     initGst:()=>({fluteFound:false, unlocked:false}),
     npcs:[
-      {x:150,y:300,label:'ふるい 燭台',lines:['ろうの たれた、ふるい 燭台。','ただ、しずかに 立って いる。','(……とくに、しかけは なさそうだ)']},
-      {x:480,y:310,label:'やぶれた 旗',lines:['色あせて、やぶれた 旗。','風も ないのに、かすかに ゆれた 気が した。','(……気のせい、だろうか)']},
-      {x:330,y:300,label:'壁画',lines:['かべに、おおきな 壁画。','おとぎが ふえを ふき、まわりで\n ちいさな 子らが、すやすや ねむって いる。','『おちて きた 子らを ねむらせた、子守唄』','その下に、しらべ ── 『ド ミ ソ ミ ド』','(まち跡の 碑文と、おなじ しらべ だ。\n うたう ものに、ふえを ──)']},
+      {x:330,y:130,label:'壁画',lines:['かべに、おおきな 壁画。','おとぎが ふえを ふき、まわりで\n ちいさな 子らが、すやすや ねむって いる。','『おちて きた 子らを ねむらせた、子守唄。','  ろうそくの 高さが、その しらべ。','  ひくい=ド、なか=ミ、たかい=ソ。','  左の ろうそくから、順に 吹け』']},
+      {x:120,y:320,label:'一の ろうそく',lines:['いちばん せの ひくい ろうそく。']},
+      {x:230,y:330,label:'二の ろうそく',lines:['なかくらいの 高さの ろうそく。']},
+      {x:355,y:330,label:'三の ろうそく',lines:['いちばん せの 高い ろうそく。']},
+      {x:470,y:330,label:'四の ろうそく',lines:['なかくらいの 高さの ろうそく。']},
+      {x:560,y:320,label:'五の ろうそく',lines:['いちばん せの ひくい ろうそく。']},
     ],
     gimmicks:[
       {x:230,y:175,label:'口を あけた 石像',
@@ -2537,20 +2547,23 @@ function buildStory(){
     ], saveAt:{x:115,y:200}, exitText:'あまだれの 中、一本足の かさこぞうが はねて きた ──'}, 'theater');
   BT('', 3); // カサ
   AF('', 3, ['カサは、しゅんと しぼんで きえた。','EXP が 入った。あまだれの 音が、やんだ。'], ['カサは、あまの むこうへ はねて いった。','かさの 下は、すこし あたたかかった。']);
-  FN('', eventLostChild);   // 途中イベント: 迷子の こだまの 子
-  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // あえて 電気を 消す → 蓄光の 文字
-    initGst:()=>({lightsOff:false}),
-    glowText:['── うらぐちは、かべの むこう。','「あかりを 消した ものだけ、','   さきへ ゆける」'],
-    glowAt:{x:W/2,y:165},
+  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // 明かりON=対応表 / OFF=蓄光の記号。覚えて 解読し 四桁錠へ
+    initGst:()=>({lightsOff:false, unlocked:false}),
+    legendText:['【 明かりが ついて いる ときだけ 読める 対応表 】','火 = 2    水 = 0    土 = 5    風 = 7','(暗くすると 消える。おぼえて おこう)'],
+    glowText:['── 蓄光の 記号（暗い ときだけ 光る）──','水  火  土  風','(対応表で 数字に なおし、左から 錠前へ)'],
+    glowAt:{x:W/2,y:150},
     npcs:[
-      {x:170,y:320,label:'明るい 壁',lines:['なにも ない、明るい 壁。','……でも よく 見ると、かすかに','なにか ぬった ような あとが ある。','(明るい ままでは、見えない?)']},
-      {x:480,y:320,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るすぎて、かえって なにも 見えない。']},
+      {x:150,y:325,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るいと 壁の 蓄光記号が 見えず、','暗いと 対応表が 見えない。','(両方は いちどに 見られない ──\n  かたほうを おぼえる しか ない)']},
     ],
-    gimmicks:[ {x:330,y:175,label:'照明の スイッチ', kind:'switch',
-      use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\nへやが 暗く なり、壁に みどりの 文字が 浮かぶ。':'パチン ── 照明を つけた。\n浮かんで いた 文字は、ふっと 消えた。']}; } } ],
-    saveAt:{x:100,y:200},
-    exitLocked:(g)=> g.lightsOff? null : 'まぶしくて、出口が どこにも 見えない。\n(おもいきって、あかりを 消して みては?)',
-    exitText:'蓄光の 文字に みちびかれ、\nかべの むこうの うらぐちへ すすんだ。'}, 'theater');
+    gimmicks:[
+      {x:250,y:175,label:'照明の スイッチ', kind:'switch',
+        use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\n壁に みどりの 蓄光記号が 浮かぶ。':'パチン ── 照明を つけた。\n壁に 対応表が 見える。']}; } },
+      {x:440,y:175,label:'四桁の 錠前', kind:'door',
+        onConfirm:()=>{ const cfg=darkCodeCfg(); cfg.after=()=>unlockRoom('蓄光の 錠が あいた!'); startCodeLock(cfg); } },
+    ],
+    saveAt:{x:90,y:200},
+    exitLocked:(g)=> g.unlocked? null : '出口は 四桁の 錠の おく。\n(明かりで 対応表を おぼえ、暗くして 記号を 読み、\n  数字に なおして 入力)',
+    exitText:'解読した 蓄光の 記号 ── うらぐちへ すすんだ。'}, 'theater');
   WK('はいごの つうろ', {title:'はいごの つうろ', bg:null,
     npcs:[{x:330,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']}],
     exitText:'おくから、ぱちぱちと はくしゅの 音が\nきこえて くる ──'}, 'theater');
@@ -2845,7 +2858,10 @@ function drawWalk(){
       c.glowText.forEach((ln,i)=>ctx.fillText(ln,gx,gy+i*30));
       drawHeart(room.px,room.py,'#f55',7);                                 // 暗くても ハートは 見える
       if(room.near&&room.near.type==='exit') txt('▶ 出口',W-44,H/2,15,'#9f9','center');
-      txt('(蓄光インク ── 暗くすると 浮かぶ 文字)',W/2,H-44,12,'#6a9','center');
+      txt('(蓄光インク ── 暗くすると 浮かぶ 記号)',W/2,H-44,12,'#6a9','center');
+    } else if(c.legendText){   // 明かりが ついて いる ときだけ 読める 対応表
+      ctx.fillStyle='rgba(0,0,0,0.45)'; ctx.fillRect(W/2-230,128,460,c.legendText.length*24+18);
+      c.legendText.forEach((ln,i)=>txt(ln,W/2,140+i*24,15,i===1?'#ffd98a':'#cdd','center'));
     } else {
       txt('部屋が 明るすぎる。かべに、なにか 塗られた あとが…',W/2,96,13,'#998','center');
     }
