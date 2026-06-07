@@ -582,7 +582,7 @@ function hasSave(){ try{ return !!localStorage.getItem(SAVE_KEY); }catch(e){ ret
 function readSave(){ try{ return JSON.parse(localStorage.getItem(SAVE_KEY)); }catch(e){ return null; } }
 function saveGame(){
   try{
-    const data={ seqPos, player:{...player}, flags:{...flags}, place:curPlace||'', ts:Date.now() };
+    const data={ seqPos, player:{...player}, flags:{...flags}, inventory:inventory.map(it=>({...it})), place:curPlace||'', ts:Date.now() };
     localStorage.setItem(SAVE_KEY, JSON.stringify(data));
     return true;
   }catch(e){ return false; }
@@ -602,6 +602,7 @@ function loadGame(){
   enemies=makeEnemies(); buildStory();
   Object.assign(player, d.player||{});
   Object.assign(flags, d.flags||{});
+  inventory = (d.inventory||[]).map(it=>({...it}));   // 鍵・ともしび 等の もちものを 復元（負けても 失わない）
   curPlace=d.place||'';
   seqPos=d.seqPos||0;
   ensureAudio();
@@ -1943,37 +1944,37 @@ function drawPuzzle(){
 /* 倉庫番（こうじょう）: 部品の 石を ぜんぶ みぞ(スイッチ)へ */
 function sokobanFactoryCfg(){ return makeStoneRoom({
   title:'ぶひんの みぞ', bg:'bg_factory',
-  sign:['しきり壁の ある、作業場。','『四つの 部品(石 ▣)を、','  四つの みぞ ○へ それぞれ はめよ。','  石は 押す ことしか できない ──','  かどに 押しこむと、二どと もどせない』','(まちがえたら X／もどる で 初期位置へ)'],
-  hint:'四つの 石 ▣ を、四つの みぞ ○へ。かど に 入れると 詰む。X でやり直し。',
-  lockedText:'おくの 戸は びくとも しない。\n四つの 石を すべて みぞに はめれば ひらく。',
-  exitText:'四つの みぞが はまり、おくへの 戸が ひらいた ──',
+  sign:['しきり壁の ある、作業場。','『三つの 石 ▣ を、三つの スイッチ ○へ。','  石は 押す ことしか できず、','  かどや 壁ぎわに よせると 二どと もどせない。','  どの 石から 押すか ── 先を 読め』','(押す 順を まちがえると 詰む。X／もどる で 初期位置へ)'],
+  hint:'押す 順番が すべて。さきに 動かすと、ほかの 石の 道を ふさいで しまう。ゴールから 逆算して、順を きめよう。X でやり直し。',
+  lockedText:'おくの 戸は びくとも しない。\n三つの スイッチを すべて 踏ませれば ひらく。',
+  exitText:'三つの スイッチが しずみ、おくへの 戸が ひらいた ──',
   map:[
-    '############',
-    '#..#.....#.#',
-    '#.O...O....#',
-    '#..*.##.*..#',
-    '#....##....#',
-    '#.O*....*O.#',
-    '#@.......#D#',
-    '############',
+    '##########',
+    '#@.....#D#',
+    '#.OOO..#.#',
+    '#.....#..#',
+    '#.*.*.*..#',
+    '##########',
   ],
 }); }
 
 /* ゼルダ風（ほらあな）: 石で 内なる みぞを 押さえ、奥の 鍵を とり、鍵の 扉を あける */
 function keyDungeonCfg(){ return makeStoneRoom({
-  title:'みずろうの かぎ', bg:'bg_water', needKey:'oldkey',
+  title:'みずろうの かぎ', bg:'bg_water', needKey:'oldkey', stepGate:true,
   keyItem:{key:'oldkey',label:'古い 鍵',desc:'こけむした、ふるい 鉄の 鍵。\nどこか おくの とびらを ひらく ようだ。'},
-  sign:['水の したたる、ふるい 石の ろう。','『みぞ ○を 石で みたせば、石戸 ▮ が さがる。','  奥の 鍵 を とって、鍵の 扉 へ』','(石を 押して みぞへ。X／もどる で やりなおせる)'],
-  hint:'石を みぞ ○へ → 石戸 ▮ が さがる → 鍵 → 扉。',
+  sign:['水の したたる、ふるい 石の ろう。','『おくの 鍵は、石戸 ▮ の むこう。','  踏みスイッチ ○を 踏むと、石戸が ひらく ──','  だが はなれた しゅんかん、すぐ 閉じる。','  石 ▣ を 押して のせ、開いた ままに せよ』','(石で スイッチを 押さえ、鍵を とって 入口の 扉へ。X でやり直し)'],
+  hint:'踏みスイッチ ○は はなれると 閉じる。石 ▣ を 押して のせ、石戸を 開けた まま 鍵を とり、入口の 扉 へ。',
   lockedText:'鉄の 扉は かたく とじている。\n古い 鍵が あれば ひらく。',
-  exitText:'古い 鍵で 扉を あけ、おくへ すすんだ ──',
+  exitText:'古い 鍵で 入口の 扉を あけ、おくへ すすんだ ──',
   map:[
-    '###########',
-    '#.@.#..K..#',
-    '#.O.G.....#',
-    '#...#.....#',
-    '#.*.#....D#',
-    '###########',
+    '############',
+    '#@....#...K#',
+    '#..O..#....#',
+    '#.....G....#',
+    '#...*.#....#',
+    '#.....#....#',
+    '#D....#....#',
+    '############',
   ],
 }); }
 
@@ -2114,10 +2115,9 @@ function drawMusic(){
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   if(M.cfg.bg&&IMG[M.cfg.bg]) drawImgCover(IMG[M.cfg.bg],0.84);
   txt(M.cfg.title||'うたう ほこら',W/2,68,25,'#fff','center');
-  txt('壁画の しらべ:',W/2,108,15,'#bda','center');
-  txt(M.target.map(i=>NOTE_NAMES[i]).join(' '),W/2,134,22,'#ffe27a','center');
+  txt('ろうそくの 高さの とおりに、ふえを 吹け',W/2,112,15,'#bda','center');
   // 吹いた ぶん
-  txt('いま: '+(M.inp.map(i=>NOTE_NAMES[i]).join(' ')||'──'),W/2,176,17,'#9cf','center');
+  txt('いま: '+(M.inp.map(i=>NOTE_NAMES[i]).join(' ')||'──'),W/2,160,18,'#9cf','center');
   const n=M.n, bw=64, gap=12, tot=n*bw+(n-1)*gap, x0=W/2-tot/2, y=240;
   for(let i=0;i<n;i++){ const x=x0+i*(bw+gap), s=(i===M.sel), lit=(M.flash===i);
     ctx.fillStyle=lit?'#ffe27a':'#222'; ctx.fillRect(x,y,bw,80);
@@ -2164,13 +2164,11 @@ function drawColorLock(){
 /* 舞台裏: 暗い ときだけ 光る 点の かず ①3 ②2 ③5 ④4 → 3254 */
 function darkCodeCfg(){ return {
   title:'蓄光の 錠前', bg:null, code:[3,2,5,4],
-  riddle:['暗い ときに 光った 点の かずを','①②③④の 順に 入れよ。'],
   solved:['カチ、カチ、カチン ──','点の かずが、四つの 数字に なった。','錠前が、しずかに ひらいた。'],
 }; }
 /* 温室: 鉢の 葉の かずを 左から 順に（4,2,6,3）*/
 function leafCodeCfg(){ return {
   title:'温室の 錠', bg:'bg_ruins', code:[4,2,6,3],
-  riddle:['四つの 鉢の 葉の かず ──','左から、ならび 順に。'],
   solved:['ことり ── 錠が はずれ、','おくへの 小道が、ひらいた。'],
 }; }
 /* 客間: 色を 番号の 小さい 順に（赤=3 青=1 緑=4 黄=2 → 青 黄 赤 緑）*/
@@ -2208,13 +2206,17 @@ function mirrorTempleCfg(){ return makeStoneRoom({
 /* 水位の 上げ下げ（しずくの 水門）: レバーで 水を 上げ下げ。低い道は 水位低で、深い水は 水位高で 渡れる */
 function waterGateCfg(){ return makeStoneRoom({
   title:'みずもんの ろう', bg:'bg_water', startHigh:false,
-  sign:['まっすぐ のびる 水路。道の 上に レバーが 三つ。','『低い道 ▦ は 水位が 低い とき、','  深い水 ~ は 水位が 高い とき だけ 渡れる。','  レバーの ところで 水位を きりかえ、','  ▦ と ~ を つかい分けて 右の D へ』','(レバーの 上で Z。 行き来 できるので 詰まない。\n まちがえても X／もどる で 初期位置へ)'],
-  hint:'▦低→(レバー上げ)→~深→(下げ)→▦低→(上げ)→~深→D。レバーは 道の 上。',
+  sign:['ひろい 水路の 間。二つの 水門レバー。','『低い道 ▦ は 水位が ひくい とき、','  深い水 ~ は 水位が たかい とき だけ 渡れる。','  下の道から はじめ、レバーで 水位を かえ、','  ▦ と ~ を つかい分けて 上の D へ のぼれ』','(レバーの 上で Z。行き来 できて 詰まない。X／もどる で 初期位置へ)'],
+  hint:'下の ▦ →(レバーで 水位 上げ)→ 中の 深い水 ~ →(下げ)→ 上の ▦ → D。水位を きりかえながら、水路 全体を ぐるりと まわる。',
   exitText:'水路を こえ、おくへ すすんだ ──',
   map:[
-    '##############',
-    '#@wwV~~VwwV~D#',
-    '##############',
+    '################',
+    '#.wwwwwwwwwwwwD#',
+    '#V##############',
+    '#.~~~~~~~~~~~~.#',
+    '#############.V#',
+    '#@wwwwwwwwwwww.#',
+    '################',
   ],
 }); }
 
@@ -2232,6 +2234,24 @@ function iceCaveCfg(){ return makeStoneRoom({
     '#I#III#IIII##',
     '#IIII#IIIIID#',
     '#############',
+  ],
+}); }
+
+/* 氷の床②（在マップ・こおった 水門）: より ねじれた すべり迷路。水門は すっかり こおりついた */
+function iceCave2Cfg(){ return makeStoneRoom({
+  title:'こおった みずもん', bg:'bg_water',
+  sign:['ふるい 水門は、すっかり こおりついて いた。','『氷に のると、つるりと すべって ──','  壁か、氷の おわりまで 止まれない。','  どこで 止まるかを 読み、出口 ▶ を めざせ』','(行きづまったら いつでも X／もどる で 初期位置へ)'],
+  hint:'すべる 先と 止まる 場所を、一手 先まで 読む。とおまわりに 見えて、それしか ない 道が ある。X で初期位置へ。',
+  exitText:'こおった 水門を ぬけ、おくへ すすんだ ──',
+  map:[
+    '###############',
+    '#@IIII#IIII#II#',
+    '#II#IIII#IIIII#',
+    '##III#.IIIIIII#',
+    '#I#IIII#IIIIII#',
+    '#IDI#III#.#.II#',
+    '##IIIIIIII#III#',
+    '###############',
   ],
 }); }
 
@@ -2273,7 +2293,7 @@ function makeStoneRoom(o){
   mirrors0.forEach((m,idx)=> gimmicks.push({x:m.cx,y:m.cy,label:'石像',kind:'mirror',mIdx:idx,
       onConfirm:()=>{ room.gst.mirrors[idx].o^=1; se('select'); roomBanner='石像を 回した'; roomBannerT=50; }}));
   const cfg={ title:o.title, bg:o.bg, isPuzzle:true, GC, MX, MY, cols, rows, win,
-    walls, plates, low, deep, ice, gates, mirrors0, keys0, emitter, emblem, blocks0, doorCell, gated, startHigh:!!o.startHigh,
+    walls, plates, low, deep, ice, gates, mirrors0, keys0, emitter, emblem, blocks0, doorCell, gated, stepGate:!!o.stepGate, startHigh:!!o.startHigh,
     startX:sx, startY:sy, puzHint:o.hint, lockedText:o.lockedText, gimmicks, needKey:o.needKey||'oldkey',
     keyItem:o.keyItem||{key:'oldkey',label:'古い 鍵',desc:'どこかの とびらを ひらく 鍵。'},
     initGst:()=>({ blocks:blocks0.map(b=>({cx:b.cx,cy:b.cy})),
@@ -2286,7 +2306,9 @@ function makeStoneRoom(o){
 }
 function srIdxI(c,cx){ return Math.round((cx-c.MX)/c.GC); }
 function srIdxJ(c,cy){ return Math.round((cy-c.MY)/c.GC); }
-function inMapGatesOpen(c){ return c.plates.length>0 && c.plates.every(p=>room.gst.blocks.some(b=>Math.hypot(b.cx-p.cx,b.cy-p.cy)<13)); }
+function inMapGatesOpen(c){ if(c.plates.length===0) return false;
+  return c.plates.every(p=> room.gst.blocks.some(b=>Math.hypot(b.cx-p.cx,b.cy-p.cy)<13)
+    || (c.stepGate && Math.hypot(room.px-p.cx,room.py-p.cy)<c.GC*0.5) ); }
 function inMapSolved(c,g){
   if(!c.gated) return true;
   if(c.win==='light') return traceBeamMap(c).hit;
@@ -2478,19 +2500,23 @@ function buildStory(){
     npcs:[
       {x:170,y:300,label:'こけの おとぎ',lines:['こけの ように 地面に へばりついた おとぎ。','「……ヒト? ……ほんもの?」','「みんな、ヒトを こわがってる。\n  でも あんた、まだ だれも\n  こわがらせて ない じゃないか」']},
       {x:470,y:200,label:'きえた ともしび台',lines:['火の きえた、ふるい ともしび台。','むかしは ヒトの ゆめに あかりを\n ともして いた らしい。','いまは、ひとつも ともって いない。']},
+      {x:320,y:170,label:'たんぽぽの わたげ',lines:['いしだたみの すきまに、たんぽぽが ひとつ。','かぜも ないのに、わたげが ふわりと\n ほどけて、くるくる まわって いる。','「ひとーつ、ふたーつ、……たくさん」','どこかで、かぞえる ような こえが した。']},
     ], saveAt:{x:110,y:200}, exitText:'みちの さきで、そよ風が ふわりと 形を むすんだ ──'}, 'ruins');
   BT('', 0); // そよ
   AF('', 0, ['そよは、かぜ ごと きえて しまった。','EXP が 入った。\nあたりの 風が、ぴたりと やんだ。'], ['そよは、まいあがって きえて いった。','かぜが、やさしく ほおを なでて いく。']);
   WK('', puzzleLampsCfg, 'ruins');   // 謎解き①: ともしびの 点灯順 ──（戦闘 そよ の あと）
   WK('まち跡の ろじうら', {title:'まち跡の ろじうら', bg:'bg_ruins',
-    npcs:[{x:330,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']}],
+    npcs:[
+      {x:230,y:250,label:'おちば の やま',lines:['ひとやまの おちば。','よく 見ると 葉では なく、きえた\n ともしびの しんが つもった もの だった。','だれかが、まだ かたづけて いない。']},
+      {x:430,y:185,label:'ちいさな ねどこ',lines:['おちばを そっと あつめて こしらえた、\n ちいさな ねどこ。','まだ、ほんのり あたたかい。','すうー、すうー ── どこかから、\n やわらかな ねいきが きこえて くる。']},
+    ],
     exitText:'みちの さきで、ねむそうな むしが\nまるく なって ねむって いる ──'}, 'ruins');
   BT('', 1); // ネム
   AF('', 1, ['ネムは、二どと おきなく なった。','EXP が 入った。\nゆめの あぶくが、しずかに きえた。'], ['ネムは、しあわせそうに ねむって いる。','おこさない ように、そっと とおった。']);
   WK('うたう ほこら', {title:'うたう ほこら', bg:'bg_ruins',   // 笛(新アイテム)→演奏 ──（戦闘 ネム の あと）
     initGst:()=>({fluteFound:false, unlocked:false}),
     npcs:[
-      {x:330,y:130,label:'壁画',lines:['かべに、おおきな 壁画。','おとぎが ふえを ふき、まわりで\n ちいさな 子らが、すやすや ねむって いる。','『おちて きた 子らを ねむらせた、子守唄。','  ろうそくの 高さが、その しらべ。','  ひくい=ド、なか=ミ、たかい=ソ。','  左の ろうそくから、順に 吹け』']},
+      {x:330,y:130,label:'壁画',lines:['かべに、おおきな 壁画。','おとぎが ふえを ふき、まわりで\n ちいさな 子らが、すやすや ねむって いる。','『おちて きた 子らを ねむらせた、子守唄。','  ろうそくの 高さが、その 音。','  ひくい=ド、なか=ミ、たかい=ソ。','  一の ろうそくから 順に 吹け』']},
       {x:120,y:320,label:'一の ろうそく',lines:['いちばん せの ひくい ろうそく。']},
       {x:230,y:330,label:'二の ろうそく',lines:['なかくらいの 高さの ろうそく。']},
       {x:355,y:330,label:'三の ろうそく',lines:['いちばん せの 高い ろうそく。']},
@@ -2547,28 +2573,32 @@ function buildStory(){
     npcs:[
       {x:180,y:300,label:'やぶれた ポスター',lines:['やぶれた こうえん ポスター。','『今夜も 満員御礼 ── キラリ 大劇場』','日づけは、ずっと むかしの もの。\n その上に だれかが、『またね』と。']},
       {x:460,y:200,label:'からの 客席',lines:['ずらりと ならんだ、からの 客席。','せきには ひとつずつ、もう いない\n おとぎたちの 名ふだが ある。']},
+      {x:330,y:330,label:'あまもりの あと',lines:['天井の ひびから、ぽつ、ぽつ、と あまもり。','その 下の ゆかに ── かさを さした ような、\n まるく かわいた あと が ひとつ。','だれかが、いつも ここで ひとり、\n あまやどりを して いる らしい。']},
     ], saveAt:{x:115,y:200}, exitText:'あまだれの 中、一本足の かさこぞうが はねて きた ──'}, 'theater');
   BT('', 3); // カサ
   AF('', 3, ['カサは、しゅんと しぼんで きえた。','EXP が 入った。あまだれの 音が、やんだ。'], ['カサは、あまの むこうへ はねて いった。','かさの 下は、すこし あたたかかった。']);
-  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null,   // 明るいと 何も 見えない。消すと 蓄光の 点が 浮かぶ → 数えて 四桁錠へ
+  WK('くらやみ 舞台裏', {title:'くらやみ 舞台裏', bg:null, lightsRoom:true,   // 明かりを 消して、よごれた 壁を 調べると 蓄光の 点が 浮かぶ
     initGst:()=>({lightsOff:false, unlocked:false}),
-    glowText:['── 暗い ときだけ 光る、蓄光の 点 ──','①  ● ● ●            ②  ● ●','','③  ● ● ● ● ●        ④  ● ● ● ●','','(光る 点の かずを ①②③④の 順に 錠前へ)'],
-    glowAt:{x:W/2,y:140},
     npcs:[
       {x:150,y:325,label:'まぶしい 照明',lines:['ジリジリと まぶしい、舞台照明。','明るすぎて、壁の あとが まったく 見えない。','(おもいきって 消せば、なにか 見える かも)']},
-      {x:330,y:325,label:'よごれた 壁',lines:['一面の、よごれた 壁。','明るい ときは ただの かべ。','……でも、かすかに 塗料の あとが ある。']},
     ],
     gimmicks:[
       {x:250,y:175,label:'照明の スイッチ', kind:'switch',
-        use:(g)=>{ g.lightsOff=!g.lightsOff; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\n壁に、みどりに 光る 点が 浮かびあがる。':'パチン ── 照明を つけた。\n光る 点は、ふっと 消えた。']}; } },
+        use:(g)=>{ g.lightsOff=!g.lightsOff; if(!g.lightsOff)g.wallRevealed=false; return {se:'confirm', lines:[ g.lightsOff?'パチン ── 照明を 消した。\nへやが、ほの暗く なった。':'パチン ── 照明を つけた。']}; } },
+      {x:330,y:300,label:'よごれた 壁',
+        use:(g)=>{ if(g.lightsOff){ g.wallRevealed=true; return {se:'select', lines:['暗がりに、みどりの 点が ぼうっと 浮かびあがった ──','壁の 四行を、よく 数えて みよう。']}; }
+          return {lines:['一面の、よごれた 壁。','明るい ときは、ただの かべ。','(……暗く すれば、なにか 見える かも)']}; } },
       {x:440,y:175,label:'四桁の 錠前', kind:'door',
         onConfirm:()=>{ const cfg=darkCodeCfg(); cfg.after=()=>unlockRoom('蓄光の 錠が あいた!'); startCodeLock(cfg); } },
     ],
     saveAt:{x:90,y:200},
-    exitLocked:(g)=> g.unlocked? null : '出口は 四桁の 錠の おく。\n(あかりを 消し、光る 点の かずを\n  ①②③④の 順に 数えて 入力)',
+    exitLocked:(g)=> g.unlocked? null : '出口は 四桁の 錠の おく。\n(あかりを 消して、よごれた 壁を 調べて みよう)',
     exitText:'蓄光の 点を 読みとき ── うらぐちへ すすんだ。'}, 'theater');
   WK('はいごの つうろ', {title:'はいごの つうろ', bg:null,
-    npcs:[{x:330,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']}],
+    npcs:[
+      {x:230,y:250,label:'おちた がくふ',lines:['ゆかに ちった、ふるい がくふ。','音ぷは かすれて、もう 読めない。','それでも、だれかが くちずさんで\n いた メロディの ぬくもりが のこる。']},
+      {x:450,y:185,label:'ふたつの 貝がら',lines:['すみに ころがる、ふたつの 貝がら。','ふいに ── ぱち、と かすかに ひらいて、\n とじた。まるで、ちいさな はくしゅ。','だれも いない 客席に むかって、まだ\n だれかが、かっさいを おくって いる。']},
+    ],
     exitText:'おくから、ぱちぱちと はくしゅの 音が\nきこえて くる ──'}, 'theater');
   BT('', 4); // パチ
   AF('', 4, ['パチは、貝を とじた まま うごかなく なった。','EXP が 入った。はくしゅの 音が、きえた。'], ['パチは たっぷり はくしゅを もらって、\nおおきく おじぎを して きえた。']);
@@ -2620,9 +2650,9 @@ function buildStory(){
   WK('しずくの ほとり', {title:'しずくの ほとり', bg:'bg_water',   // 氷 と 水位の あいだの 一休み
     npcs:[
       {x:240,y:300,label:'こおった しずく',lines:['つららの ように こおった しずく。','とけた しずくが、ぽたり、と おちる。','その音だけが、ほらあなに ひびく。']},
-      {x:430,y:310,label:'ふるい 水位の あと',lines:['いわはだに のこる、水位の あと。','むかしは、もっと 水が 高かった らしい。','『この おくに、水門が ある』── と、\n だれかが きざんで いる。']},
-    ], saveAt:{x:115,y:200}, exitText:'みちは、ふるい 水門の ろうへと つづいて いる ──'}, 'water');
-  WK('', waterGateCfg, 'water');    // 水位（在マップ・レバーで 道が 変わる・氷とは 別の 部屋）
+      {x:430,y:310,label:'ふるい 水位の あと',lines:['いわはだに のこる、水位の あと。','むかしは、もっと 水が 高かった らしい。','『この おくの 水門は、すっかり\n こおりついた』── と、だれかが きざんで いる。']},
+    ], saveAt:{x:115,y:200}, exitText:'みちの さきは ── 一面、こおりついた\nふるい 水門 だった ──'}, 'water');
+  WK('', iceCave2Cfg, 'water');    // 氷すべり②（在マップ・こおった 水門）── 水門レバーを 廃し 氷に 差し替え
   WK('しずくの おくみち', {title:'しずくの おくみち', bg:'bg_water',
     npcs:[
       {x:230,y:300,label:'ふるい いぬ小屋',lines:['ふるい いぬ小屋。','中に ボロボロの ボールと、しゃしん。','わらった おとぎの 子と、子どもの ワンダ。','うらに ── 『また あそぼうね』。']},
@@ -2649,11 +2679,19 @@ function buildStory(){
       {x:460,y:200,label:'とまった 大時計',lines:['大きな 時計。はりは、とまっている。','とびらが しまった、あの 日の\n 時こくの まま だ。','じかんは、ここで とまって いる。']},
     ], saveAt:{x:115,y:190}, exitText:'おくの 通路は、みだれた 歯車に ふさがれている ──'}, 'factory');
   WK('', sokobanFactoryCfg, 'factory');   // 倉庫番（在マップ・石を 直接 押す）──（探索の あと）
+  WK('はぐるまの みはり道', {title:'はぐるまの みはり道', bg:'bg_factory',   // ネジ戦の 前ぶり（モンスターに ちなんだ オブジェクト）
+    npcs:[
+      {x:200,y:300,label:'おちた ぜんまい',lines:['ゆかに おちた、ちいさな ぜんまい。','まだ カチ……カチ……と、けなげに\n うごこうと して いる。','「き、りつ……」と、どこかで\n かすれた こえが した。']},
+      {x:450,y:195,label:'ならんだ 足あと',lines:['ゆかに、きっちり 等かんかくの 足あと。','一、二、一、二 ── みだれ ひとつ ない。','だれかが ずっと ひとりで、行進を\n つづけて いる らしい。','だれも、もう 見て いない のに。']},
+    ], saveAt:{x:120,y:200}, exitText:'カチ、カチ、カチ ── ぜんまいの 兵が、\nきちんと 行進して きた ──'}, 'factory');
   BT('', 9); // ネジ
   AF('', 9, ['ネジは、ぜんまいが きれて、とまった。','EXP が 入った。行進の 音が、やんだ。'], ['ネジは、ねじを まいて もらって あんしんし、\nきちんと 敬礼して 行進して いった。']);
   WK('', mirrorTempleCfg, 'factory');     // 光の 反射（在マップ・石像を Zで 回す）──（戦闘 ネジ の あと）
   WK('ベルトコンベア', {title:'ベルトコンベア', bg:'bg_factory',
-    npcs:[{x:330,y:250,label:'ながれる ぶひん',lines:['ベルトの 上を、ぶひんが ながれて いく。','どれも、きっちりと そろえられて いる。','ひとつ だけ ずれた ぶひんを、\n だれかが すぐ なおして いった。']}],
+    npcs:[
+      {x:230,y:250,label:'ながれる ぶひん',lines:['ベルトの 上を、ぶひんが ながれて いく。','どれも、きっちりと そろえられて いる。','ひとつ だけ ずれた ぶひんを、\n だれかが すぐ なおして いった。']},
+      {x:450,y:320,label:'ぴかぴかの ゆか',lines:['ベルトの 下の ゆかだけ、なぜか\n ちりひとつ なく みがかれて いる。','あなたの あしあとが ついた とたん、','しゃっ ── どこからか、すぐに\n はわく 音が した。「……よごさ ないでね」']},
+    ],
     exitText:'しゃっ、しゃっ ── ゆかを はわく\n音が、ちかづいて くる ──'}, 'factory');
   BT('', 10); // ホウキ
   AF('', 10, ['ホウキは、ほこりに かえって きえた。','EXP が 入った。ゆかに、ほこりが つもる。'], ['ホウキは、そうじを てつだって もらって\nごきげんに、すうっと きえた。']);
@@ -2868,6 +2906,32 @@ function drawWalk(){
       c.legendText.forEach((ln,i)=>txt(ln,W/2,140+i*24,15,i===1?'#ffd98a':'#cdd','center'));
     } else {
       txt('部屋が 明るすぎる。かべに、なにか 塗られた あとが…',W/2,96,13,'#998','center');
+    }
+  }
+  // 蓄光部屋: 明かりを 消すと ほの暗く ── よごれた 壁を 調べると みどりの 点が 浮かぶ
+  if(c.lightsRoom && room.gst.lightsOff){
+    ctx.fillStyle='rgba(4,6,12,0.62)'; ctx.fillRect(20,108,W-40,H-118);
+    if(room.gst.wallRevealed){
+      const rows=[3,2,5,4], labels=['①','②','③','④'];
+      const pulse=0.55+Math.sin(Date.now()*0.005)*0.25;
+      txt('かべに、みどりの 点が 浮かびあがった ──',W/2,130,15,'#7fdca0','center');
+      ctx.save();
+      ctx.textAlign='left'; ctx.textBaseline='middle';
+      const x0=255, y0=180, rh=62, dg=36;
+      for(let r=0;r<4;r++){ const y=y0+r*rh;
+        ctx.shadowBlur=0; ctx.fillStyle='rgba(150,255,180,'+pulse+')';
+        ctx.font='24px "Courier New",monospace'; ctx.fillText(labels[r], x0-52, y);
+        for(let d=0;d<rows[r];d++){ const x=x0+d*dg;
+          ctx.shadowColor='rgba(110,255,150,0.95)'; ctx.shadowBlur=16;
+          ctx.fillStyle='rgba(160,255,185,'+pulse+')';
+          ctx.beginPath(); ctx.arc(x,y,8,0,7); ctx.fill(); }
+      }
+      ctx.shadowBlur=0; ctx.restore();
+      drawHeart(room.px,room.py,'#f55',7);
+      txt('(蓄光インク ── 点の かずを 数えよう)',W/2,H-40,12,'#6a9','center');
+    } else {
+      drawHeart(room.px,room.py,'#f55',7);
+      txt('(暗い ── よごれた 壁を 調べて みよう)',W/2,H-40,12,'#7a9','center');
     }
   }
   // バナー
